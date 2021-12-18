@@ -3,10 +3,13 @@ from flask_restful import Resource, Api, reqparse
 import paramiko
 from getpass import getpass
 import json
+import re
 
 HOSTNAME = input("Pihole Hostname: ")
 USERNAME = input("Pihole Username: ")
 PASSWORD = getpass("Pihole Password: ")
+
+LIST_REGEX = r'\d: (.+) \((.*), last modified (.*)\)$'
 
 app = Flask(__name__)
 api = Api(app)
@@ -111,10 +114,59 @@ class DNSRecord(Resource):
     pass
 
 
+class Whitelist(Resource):
+    def get(self):
+        stdin, stdout, stderr = ssh_command("pihole -w -l")
+        if len(stderr.readlines()) > 0:
+            print(stderr.readlines())
+            return Response(response=stderr.readlines(), status=500)
+        else:
+            data = []
+            for line in stdout.readlines():
+                match = re.search(LIST_REGEX, line)
+                if(match):
+                    domain = match[1]
+                    state = match[2]
+                    modified = match[3]
+                    data.append(
+                        {'domain': domain, 'state': state, 'modified': modified})
+
+            response = json.dumps(data)
+
+            print(data)
+            print(response)
+
+            return Response(response=response, status=200)
+
+
+class Blacklist(Resource):
+    def get(self):
+        stdin, stdout, stderr = ssh_command("pihole -b -l")
+        if len(stderr.readlines()) > 0:
+            print(stderr.readlines())
+            return Response(response=stderr.readlines(), status=500)
+        else:
+            data = []
+            for line in stdout.readlines():
+                match = re.search(LIST_REGEX, line)
+                if(match):
+                    domain = match[1]
+                    state = match[2]
+                    modified = match[3]
+                    data.append(
+                        {'domain': domain, 'state': state, 'modified': modified})
+
+            response = json.dumps(data)
+
+            return Response(response=response, status=200)
+
+
 api.add_resource(Gravity, "/gravity")
 api.add_resource(Status, "/status")
 api.add_resource(RestartDNS, "/restartdns")
 api.add_resource(DNSRecord, "/dnsrecord")
+api.add_resource(Whitelist, "/whitelist")
+api.add_resource(Blacklist, "/blacklist")
 
 if __name__ == "__main__":
     app.run()
