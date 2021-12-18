@@ -97,12 +97,23 @@ class Status(Resource):
             )
 
 
+class RestartDNS(Resource):
+    def post(self):
+        stdin, stdout, stderr = ssh_command("pihole restartdns")
+        if len(stderr.readlines()) > 0:
+            print(stderr.readlines())
+            return Response(response=stderr.readlines(), status=500)
+        else:
+            return Response(response="Success", status=200)
+
+
 class DNSRecord(Resource):
     pass
 
 
 api.add_resource(Gravity, "/gravity")
 api.add_resource(Status, "/status")
+api.add_resource(RestartDNS, "/restartdns")
 api.add_resource(DNSRecord, "/dnsrecord")
 
 if __name__ == "__main__":
