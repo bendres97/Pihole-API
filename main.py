@@ -1,7 +1,6 @@
 from flask import Flask, Response
 from flask_restful import Resource, Api, reqparse
 import paramiko
-from getpass import getpass
 import json
 import re
 
