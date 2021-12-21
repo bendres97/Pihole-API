@@ -10,7 +10,8 @@ HOSTS_FILE = "/app/hosts.conf"
 HOSTS = []
 with open(HOSTS_FILE) as hosts:
     for host in hosts.readlines():
-        HOSTS.append(host)
+        if not host in HOSTS:
+            HOSTS.append(host)
 
 SSH_CLIENT = paramiko.SSHClient()
 SSH_CLIENT.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -22,22 +23,28 @@ api = Api(app)
 
 def ssh_command(command):
 
-    stdin = []
-    stdout = []
-    stderr = []
+    data = []
+
+    index=0
 
     for host in HOSTS:
         username, hostname = host.strip().split("@")
-        print(f"Host: {host} Username: {username} Hostname: {hostname}")
         SSH_CLIENT.connect(username=username, hostname=hostname, pkey=SSH_KEY)
         i, o, e = SSH_CLIENT.exec_command(command)
 
-        for line in o.readlines():
-            stdout.append(line)
-        for line in e.readlines():
-            stderr.append(line)
+        stdout = ""
+        stderr = ""
 
-    return stdin, stdout, stderr
+        for line in o.readlines():
+            stdout += line + "\n"
+        for line in e.readlines():
+            stderr += line + "\n"
+
+        data.append({"host":hostname,"stdout":stdout,"stderr":stderr})
+
+        index += 1
+
+    return data
 
 
 class Gravity(Resource):
@@ -46,44 +53,45 @@ class Gravity(Resource):
 
 class Status(Resource):
     def get(self):
+        result = []
 
-        stdin, stdout, stderr = ssh_command("pihole status")
+        data = ssh_command("pihole status")
 
-        service_listening = False
-        udp_ipv4 = False
-        udp_ipv6 = False
-        tcp_ipv4 = False
-        tcp_ipv6 = False
-        blocking = False
+        for obj in data:
+            service_listening = False
+            udp_ipv4 = False
+            udp_ipv6 = False
+            tcp_ipv4 = False
+            tcp_ipv6 = False
+            blocking = False
 
-        for line in stdout:
-            # Check for True conditions
-            if "✓" in line:
-                if "DNS service" in line:
-                    service_listening = True
-                elif "UDP (IPv4)" in line:
-                    udp_ipv4 = True
-                elif "UDP (IPv6)" in line:
-                    udp_ipv6 = True
-                elif "TCP (IPv4)" in line:
-                    tcp_ipv4 = True
-                elif "TCP (IPv6)" in line:
-                    tcp_ipv6 = True
-                elif "Pi-hole blocking" in line:
-                    blocking = True
+            for line in obj['stdout'].split('\n'):
+                # Check for True conditions
+                if "✓" in line:
+                    if "DNS service" in line:
+                        service_listening = True
+                    elif "UDP (IPv4)" in line:
+                        udp_ipv4 = True
+                    elif "UDP (IPv6)" in line:
+                        udp_ipv6 = True
+                    elif "TCP (IPv4)" in line:
+                        tcp_ipv4 = True
+                    elif "TCP (IPv6)" in line:
+                        tcp_ipv6 = True
+                    elif "Pi-hole blocking" in line:
+                        blocking = True
 
-        data = {
-            "service_listening": service_listening,
-            "udp_ipv4": udp_ipv4,
-            "udp_ipv6": udp_ipv6,
-            "tcp_ipv4": tcp_ipv4,
-            "tcp_ipv6": tcp_ipv6,
-            "blocking": blocking,
-        }
+            result.append({
+                "host": obj['host'],
+                "service_listening": service_listening,
+                "udp_ipv4": udp_ipv4,
+                "udp_ipv6": udp_ipv6,
+                "tcp_ipv4": tcp_ipv4,
+                "tcp_ipv6": tcp_ipv6,
+                "blocking": blocking,
+            })
 
-        response = json.dumps(data)
-
-        print(response)
+        response = json.dumps(result)
 
         return Response(response=response, mimetype="application/json", status=200)
 
@@ -97,19 +105,20 @@ class Status(Resource):
         action = args["action"]
 
         if action == "enable":
-            en_in, en_out, en_err = ssh_command("pihole enable")
-            if len(en_err) > 0:
-                print(en_err)
-                return Response(response=en_err, status=500)
-            else:
-                return Response(response="Success", status=200)
+            enable_results = ssh_command("pihole enable")
+            for result in enable_results:
+                if len(result['stderr']) > 0:
+                    print(result['stderr'])
+                    return Response(response=result['stderr'], status=500)
+            return Response(response="Success", status=200)
+
         elif action == "disable":
-            dis_in, dis_out, dis_err = ssh_command("pihole disable")
-            if len(dis_err) > 0:
-                print(dis_err)
-                return Response(response=dis_err, status=500)
-            else:
-                return Response(response="Success", status=200)
+            disable_results = ssh_command("pihole disable")
+            for result in disable_results:
+                if len(result['stderr']) > 0:
+                    print(result['stderr'])
+                    return Response(response=result['stderr'], status=500)
+            return Response(response="Success", status=200)
         else:
             return Response(
                 response="Invalid Request. Your options are 'action=enable' or 'action=disable'",
@@ -119,12 +128,12 @@ class Status(Resource):
 
 class RestartDNS(Resource):
     def post(self):
-        stdin, stdout, stderr = ssh_command("pihole restartdns")
-        if len(stderr) > 0:
-            print(stderr)
-            return Response(response=stderr, status=500)
-        else:
-            return Response(response="Success", status=200)
+        results = ssh_command("pihole restartdns")
+        for result in results:
+            if len(result['stderr']) > 0:
+                print(result['stderr'])
+                return Response(response=result['stderr'], status=500)
+        return Response(response="Success", status=200)
 
 
 class DNSRecord(Resource):
@@ -133,13 +142,16 @@ class DNSRecord(Resource):
 
 class Whitelist(Resource):
     def get(self):
-        stdin, stdout, stderr = ssh_command("pihole -w -l")
-        if len(stderr) > 0:
-            print(stderr)
-            return Response(response=stderr, status=500)
-        else:
+        results = ssh_command("pihole -w -l")
+        for result in results:
+            if len(result['stderr']) > 0:
+                print(result['stderr'])
+                return Response(response=result['stderr'], status=500)
+        
+        lists = []
+        for result in results:
             data = []
-            for line in stdout:
+            for line in result['stdout'].split('\n'):
                 match = re.search(LIST_REGEX, line)
                 if match:
                     domain = match[1]
@@ -148,21 +160,24 @@ class Whitelist(Resource):
                     data.append(
                         {"domain": domain, "state": state, "modified": modified}
                     )
+            lists.append({'host':result['host'],'data':data})
+        response = json.dumps(lists)
 
-            response = json.dumps(data)
-
-            return Response(response=response, status=200)
+        return Response(response=response, status=200)
 
 
 class Blacklist(Resource):
     def get(self):
-        stdin, stdout, stderr = ssh_command("pihole -b -l")
-        if len(stderr) > 0:
-            print(stderr)
-            return Response(response=stderr, status=500)
-        else:
+        results = ssh_command("pihole -b -l")
+        for result in results:
+            if len(result['stderr']) > 0:
+                print(result['stderr'])
+                return Response(response=result['stderr'], status=500)
+        
+        lists = []
+        for result in results:
             data = []
-            for line in stdout:
+            for line in result['stdout'].split('\n'):
                 match = re.search(LIST_REGEX, line)
                 if match:
                     domain = match[1]
@@ -171,10 +186,10 @@ class Blacklist(Resource):
                     data.append(
                         {"domain": domain, "state": state, "modified": modified}
                     )
+            lists.append({'host':result['host'],'data':data})
+        response = json.dumps(lists)
 
-            response = json.dumps(data)
-
-            return Response(response=response, status=200)
+        return Response(response=response, status=200)
 
 
 api.add_resource(Gravity, "/gravity")
