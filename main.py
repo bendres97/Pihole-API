@@ -6,6 +6,8 @@ import re
 
 LIST_REGEX = r"\d: (.+) \((.*), last modified (.*)\)$"
 
+CUSTOM_DOMAIN_FILE = "/etc/dnsmasq.d/05-pihole-custom-cname.conf"
+
 HOSTS_FILE = "/app/hosts.conf"
 HOSTS = []
 with open(HOSTS_FILE) as hosts:
@@ -136,8 +138,91 @@ class RestartDNS(Resource):
         return Response(response="Success", status=200)
 
 
-class DNSRecord(Resource):
-    pass
+class CNAMERecord(Resource):
+    def get_records(self):
+        results = ssh_command(f"cat {CUSTOM_DOMAIN_FILE}")
+        for result in results:
+            if len(result['stderr']) > 0:
+                print(result['stderr'])
+                return Response(response=result['stderr'],status=500)
+        
+        domains = []
+        for result in results:
+            for line in result['stdout'].split('\n'):
+                if not line in domains and line != "":
+                    domains.append(line)
+        
+        resp = json.dumps({"domains":domains})
+
+        return resp
+
+    def get(self):
+        return Response(response=self.get_records(),status=200)
+        
+    def put(self):
+        parser = reqparse.RequestParser()
+
+        parser.add_argument("cname", required=True)
+        parser.add_argument("host",required=True)
+
+        args = parser.parse_args()
+
+        cname = args["cname"]
+        host = args["host"]
+
+        domains = json.loads(self.get_records()).get('domains')
+        domains.append(f"cname={cname},{host}")
+
+        domain_str = ""
+        for domain in domains:
+            domain_str += domain + "\n"
+
+        update_results = ssh_command(f"echo '{domain_str.strip()}' > /tmp/domains.tmp; sudo cp /tmp/domains.tmp {CUSTOM_DOMAIN_FILE}")
+        for result in update_results:
+            if len(result['stderr']) > 0:
+                print(result['stderr'])
+                return Response(response=result['stderr'],status=500)
+        
+        restart_results = ssh_command("pihole restartdns")
+        for result in restart_results:
+            if len(result['stderr']) > 0:
+                print(result['stderr'])
+                return Response(response=result['stderr'],status=500)
+        
+        return Response(response="Success",status=200)
+    
+    def delete(self):
+        parser = reqparse.RequestParser()
+
+        parser.add_argument("cname", required=True)
+        parser.add_argument("host",required=True)
+
+        args = parser.parse_args()
+
+        cname = args["cname"]
+        host = args["host"]
+
+        domains = json.loads(self.get_records()).get('domains')
+        
+        domains.remove(f"cname={cname},{host}")
+
+        domain_str = ""
+        for domain in domains:
+            domain_str += domain + "\n"
+
+        update_results = ssh_command(f"echo '{domain_str.strip()}' > /tmp/domains.tmp; sudo cp /tmp/domains.tmp {CUSTOM_DOMAIN_FILE}")
+        for result in update_results:
+            if len(result['stderr']) > 0:
+                print(result['stderr'])
+                return Response(response=result['stderr'],status=500)
+        
+        restart_results = ssh_command("pihole restartdns")
+        for result in restart_results:
+            if len(result['stderr']) > 0:
+                print(result['stderr'])
+                return Response(response=result['stderr'],status=500)
+        
+        return Response(response="Success",status=200)
 
 
 class Whitelist(Resource):
@@ -195,9 +280,10 @@ class Blacklist(Resource):
 api.add_resource(Gravity, "/gravity")
 api.add_resource(Status, "/status")
 api.add_resource(RestartDNS, "/restartdns")
-api.add_resource(DNSRecord, "/dnsrecord")
+api.add_resource(CNAMERecord, "/cnamerecord")
 api.add_resource(Whitelist, "/whitelist")
 api.add_resource(Blacklist, "/blacklist")
 
 if __name__ == "__main__":
+    ssh_command(f"sudo touch {CUSTOM_DOMAIN_FILE}")
     app.run(host="0.0.0.0")
