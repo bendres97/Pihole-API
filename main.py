@@ -50,7 +50,16 @@ def ssh_command(command):
 
 
 class Gravity(Resource):
-    pass
+    def post(self): # Updates Gravity
+        results = ssh_command("pihole -g")
+
+        for result in results:
+            if len(result['stderr']) > 0:
+                print(result['stderr'])
+                return Response(response=result['stderr'], status=500)
+        return Response(response="Success", status=200)
+
+    
 
 
 class Status(Resource):
