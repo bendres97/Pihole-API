@@ -27,39 +27,40 @@ def ssh_command(command):
 
     data = []
 
-    index=0
+    index = 0
 
     for host in HOSTS:
-        username, hostname = host.strip().split("@")
-        SSH_CLIENT.connect(username=username, hostname=hostname, pkey=SSH_KEY)
-        i, o, e = SSH_CLIENT.exec_command(command)
+        try:
+            username, hostname = host.strip().split("@")
+            SSH_CLIENT.connect(username=username, hostname=hostname, pkey=SSH_KEY)
+            i, o, e = SSH_CLIENT.exec_command(command)
 
-        stdout = ""
-        stderr = ""
+            stdout = ""
+            stderr = ""
 
-        for line in o.readlines():
-            stdout += line + "\n"
-        for line in e.readlines():
-            stderr += line + "\n"
+            for line in o.readlines():
+                stdout += line + "\n"
+            for line in e.readlines():
+                stderr += line + "\n"
 
-        data.append({"host":hostname,"stdout":stdout,"stderr":stderr})
+            data.append({"host": hostname, "stdout": stdout, "stderr": stderr})
 
-        index += 1
+            index += 1
+        finally:  # Ensure the connection is closed, even if there is an error during the execution above
+            SSH_CLIENT.close()
 
     return data
 
 
 class Gravity(Resource):
-    def post(self): # Updates Gravity
+    def post(self):  # Updates Gravity
         results = ssh_command("pihole -g")
 
         for result in results:
-            if len(result['stderr']) > 0:
-                print(result['stderr'])
-                return Response(response=result['stderr'], status=500)
+            if len(result["stderr"]) > 0:
+                print(result["stderr"])
+                return Response(response=result["stderr"], status=500)
         return Response(response="Success", status=200)
-
-    
 
 
 class Status(Resource):
@@ -76,7 +77,7 @@ class Status(Resource):
             tcp_ipv6 = False
             blocking = False
 
-            for line in obj['stdout'].split('\n'):
+            for line in obj["stdout"].split("\n"):
                 # Check for True conditions
                 if "✓" in line:
                     if "DNS service" in line:
@@ -92,15 +93,17 @@ class Status(Resource):
                     elif "Pi-hole blocking" in line:
                         blocking = True
 
-            result.append({
-                "host": obj['host'],
-                "service_listening": service_listening,
-                "udp_ipv4": udp_ipv4,
-                "udp_ipv6": udp_ipv6,
-                "tcp_ipv4": tcp_ipv4,
-                "tcp_ipv6": tcp_ipv6,
-                "blocking": blocking,
-            })
+            result.append(
+                {
+                    "host": obj["host"],
+                    "service_listening": service_listening,
+                    "udp_ipv4": udp_ipv4,
+                    "udp_ipv6": udp_ipv6,
+                    "tcp_ipv4": tcp_ipv4,
+                    "tcp_ipv6": tcp_ipv6,
+                    "blocking": blocking,
+                }
+            )
 
         response = json.dumps(result)
 
@@ -118,17 +121,17 @@ class Status(Resource):
         if action == "enable":
             enable_results = ssh_command("pihole enable")
             for result in enable_results:
-                if len(result['stderr']) > 0:
-                    print(result['stderr'])
-                    return Response(response=result['stderr'], status=500)
+                if len(result["stderr"]) > 0:
+                    print(result["stderr"])
+                    return Response(response=result["stderr"], status=500)
             return Response(response="Success", status=200)
 
         elif action == "disable":
             disable_results = ssh_command("pihole disable")
             for result in disable_results:
-                if len(result['stderr']) > 0:
-                    print(result['stderr'])
-                    return Response(response=result['stderr'], status=500)
+                if len(result["stderr"]) > 0:
+                    print(result["stderr"])
+                    return Response(response=result["stderr"], status=500)
             return Response(response="Success", status=200)
         else:
             return Response(
@@ -141,9 +144,9 @@ class RestartDNS(Resource):
     def post(self):
         results = ssh_command("pihole restartdns")
         for result in results:
-            if len(result['stderr']) > 0:
-                print(result['stderr'])
-                return Response(response=result['stderr'], status=500)
+            if len(result["stderr"]) > 0:
+                print(result["stderr"])
+                return Response(response=result["stderr"], status=500)
         return Response(response="Success", status=200)
 
 
@@ -151,101 +154,105 @@ class CNAMERecord(Resource):
     def get_records(self):
         results = ssh_command(f"cat {CUSTOM_DOMAIN_FILE}")
         for result in results:
-            if len(result['stderr']) > 0:
-                print(result['stderr'])
-                return Response(response=result['stderr'],status=500)
-        
+            if len(result["stderr"]) > 0:
+                print(result["stderr"])
+                return Response(response=result["stderr"], status=500)
+
         domains = []
         for result in results:
-            for line in result['stdout'].split('\n'):
+            for line in result["stdout"].split("\n"):
                 if not line in domains and line != "":
                     domains.append(line)
-        
-        resp = json.dumps({"domains":domains})
+
+        resp = json.dumps({"domains": domains})
 
         return resp
 
     def get(self):
-        return Response(response=self.get_records(),status=200)
-        
+        return Response(response=self.get_records(), status=200)
+
     def put(self):
         parser = reqparse.RequestParser()
 
         parser.add_argument("cname", required=True)
-        parser.add_argument("host",required=True)
+        parser.add_argument("host", required=True)
 
         args = parser.parse_args()
 
         cname = args["cname"]
         host = args["host"]
 
-        domains = json.loads(self.get_records()).get('domains')
+        domains = json.loads(self.get_records()).get("domains")
         domains.append(f"cname={cname},{host}")
 
         domain_str = ""
         for domain in domains:
             domain_str += domain + "\n"
 
-        update_results = ssh_command(f"echo '{domain_str.strip()}' > /tmp/domains.tmp; sudo cp /tmp/domains.tmp {CUSTOM_DOMAIN_FILE}")
+        update_results = ssh_command(
+            f"echo '{domain_str.strip()}' > /tmp/domains.tmp; sudo cp /tmp/domains.tmp {CUSTOM_DOMAIN_FILE}"
+        )
         for result in update_results:
-            if len(result['stderr']) > 0:
-                print(result['stderr'])
-                return Response(response=result['stderr'],status=500)
-        
+            if len(result["stderr"]) > 0:
+                print(result["stderr"])
+                return Response(response=result["stderr"], status=500)
+
         restart_results = ssh_command("pihole restartdns")
         for result in restart_results:
-            if len(result['stderr']) > 0:
-                print(result['stderr'])
-                return Response(response=result['stderr'],status=500)
-        
-        return Response(response="Success",status=200)
-    
+            if len(result["stderr"]) > 0:
+                print(result["stderr"])
+                return Response(response=result["stderr"], status=500)
+
+        return Response(response="Success", status=200)
+
     def delete(self):
         parser = reqparse.RequestParser()
 
         parser.add_argument("cname", required=True)
-        parser.add_argument("host",required=True)
+        parser.add_argument("host", required=True)
 
         args = parser.parse_args()
 
         cname = args["cname"]
         host = args["host"]
 
-        domains = json.loads(self.get_records()).get('domains')
-        
+        domains = json.loads(self.get_records()).get("domains")
+
         domains.remove(f"cname={cname},{host}")
 
         domain_str = ""
         for domain in domains:
             domain_str += domain + "\n"
 
-        update_results = ssh_command(f"echo '{domain_str.strip()}' > /tmp/domains.tmp; sudo cp /tmp/domains.tmp {CUSTOM_DOMAIN_FILE}")
+        update_results = ssh_command(
+            f"echo '{domain_str.strip()}' > /tmp/domains.tmp; sudo cp /tmp/domains.tmp {CUSTOM_DOMAIN_FILE}"
+        )
         for result in update_results:
-            if len(result['stderr']) > 0:
-                print(result['stderr'])
-                return Response(response=result['stderr'],status=500)
-        
+            if len(result["stderr"]) > 0:
+                print(result["stderr"])
+                return Response(response=result["stderr"], status=500)
+
         restart_results = ssh_command("pihole restartdns")
         for result in restart_results:
-            if len(result['stderr']) > 0:
-                print(result['stderr'])
-                return Response(response=result['stderr'],status=500)
-        
-        return Response(response="Success",status=200)
+            if len(result["stderr"]) > 0:
+                print(result["stderr"])
+                return Response(response=result["stderr"], status=500)
+
+        return Response(response="Success", status=200)
 
 
 class Whitelist(Resource):
     def get(self):
         results = ssh_command("pihole -w -l")
         for result in results:
-            if len(result['stderr']) > 0:
-                print(result['stderr'])
-                return Response(response=result['stderr'], status=500)
-        
+            if len(result["stderr"]) > 0:
+                print(result["stderr"])
+                return Response(response=result["stderr"], status=500)
+
         lists = []
         for result in results:
             data = []
-            for line in result['stdout'].split('\n'):
+            for line in result["stdout"].split("\n"):
                 match = re.search(LIST_REGEX, line)
                 if match:
                     domain = match[1]
@@ -254,7 +261,7 @@ class Whitelist(Resource):
                     data.append(
                         {"domain": domain, "state": state, "modified": modified}
                     )
-            lists.append({'host':result['host'],'data':data})
+            lists.append({"host": result["host"], "data": data})
         response = json.dumps(lists)
 
         return Response(response=response, status=200)
@@ -264,14 +271,14 @@ class Blacklist(Resource):
     def get(self):
         results = ssh_command("pihole -b -l")
         for result in results:
-            if len(result['stderr']) > 0:
-                print(result['stderr'])
-                return Response(response=result['stderr'], status=500)
-        
+            if len(result["stderr"]) > 0:
+                print(result["stderr"])
+                return Response(response=result["stderr"], status=500)
+
         lists = []
         for result in results:
             data = []
-            for line in result['stdout'].split('\n'):
+            for line in result["stdout"].split("\n"):
                 match = re.search(LIST_REGEX, line)
                 if match:
                     domain = match[1]
@@ -280,7 +287,7 @@ class Blacklist(Resource):
                     data.append(
                         {"domain": domain, "state": state, "modified": modified}
                     )
-            lists.append({'host':result['host'],'data':data})
+            lists.append({"host": result["host"], "data": data})
         response = json.dumps(lists)
 
         return Response(response=response, status=200)
