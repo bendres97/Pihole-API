@@ -1,0 +1,10 @@
+---
+version: "3"
+
+services:
+  pihole_api:
+    image: bryanendres/pihole-api
+    ports:
+      - 5000:5000
+    restart: unless-stopped
+    container_name: pihole-api
