@@ -1,5 +1,6 @@
 FROM python:3.9-slim
 
+RUN apt update && apt install ssh-tools -y
 RUN pip install --upgrade pip
 
 RUN mkdir /app
