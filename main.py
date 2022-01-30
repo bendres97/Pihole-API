@@ -19,6 +19,10 @@ SSH_CLIENT = paramiko.SSHClient()
 SSH_CLIENT.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 SSH_KEY = paramiko.RSAKey.from_private_key_file("/root/.ssh/id_rsa")
 
+ADLIST_ID = 0
+ADLIST_ADDRESS = 1
+ADLIST_COMMENT = 2
+
 app = Flask(__name__)
 api = Api(app)
 
@@ -32,6 +36,7 @@ def ssh_command(command):
     for host in HOSTS:
         try:
             username, hostname = host.strip().split("@")
+            print(f"Running {command} on {hostname}")
             SSH_CLIENT.connect(username=username, hostname=hostname, pkey=SSH_KEY)
             i, o, e = SSH_CLIENT.exec_command(command)
 
@@ -39,9 +44,9 @@ def ssh_command(command):
             stderr = ""
 
             for line in o.readlines():
-                stdout += line + "\n"
+                stdout += line #+ "\n"
             for line in e.readlines():
-                stderr += line + "\n"
+                stderr += line #+ "\n"
 
             data.append({"host": hostname, "stdout": stdout, "stderr": stderr})
 
@@ -61,6 +66,34 @@ class Gravity(Resource):
                 print(result["stderr"])
                 return Response(response=result["stderr"], status=500)
         return Response(response="Success", status=200)
+
+    def delete(self):
+        pass
+
+    def patch(self):
+        pass
+
+    def get(self):
+        results = ssh_command('/usr/bin/sqlite3 /etc/pihole/gravity.db "SELECT id, address, comment FROM adlist;"')
+
+        for result in results:
+            if len(result['stderr']) > 0:
+                print(result['stderr'])
+                return Response(response=result['stderr'], status=500)
+        
+        data = {}
+
+        for result in results:
+            host_result = []
+            for entry in result['stdout'].split('\n'):
+                columns = entry.split("|")
+                if len(columns) == 3:
+                    host_result.append({'id':columns[ADLIST_ID], 'comment':columns[ADLIST_COMMENT], 'address':columns[ADLIST_ADDRESS]})
+            data[result['host']] = host_result
+
+        response = json.dumps(data)
+
+        return Response(response=response,mimetype='application/json',status=200)
 
 
 class Status(Resource):
