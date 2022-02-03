@@ -36,7 +36,6 @@ def ssh_command(command):
     for host in HOSTS:
         try:
             username, hostname = host.strip().split("@")
-            print(f"Running {command} on {hostname}")
             SSH_CLIENT.connect(username=username, hostname=hostname, pkey=SSH_KEY)
             i, o, e = SSH_CLIENT.exec_command(command)
 
@@ -59,7 +58,21 @@ def ssh_command(command):
 
 class Gravity(Resource):
     def post(self):  # Updates Gravity
-        results = ssh_command("pihole -g")
+        parser = reqparse.RequestParser()
+
+        parser.add_argument("domain", required=True)
+        parser.add_argument("comment")
+
+        args = parser.parse_args()
+
+        domain = args['domain']
+        comment = args['comment']
+        if not comment:
+            comment = "Added via API"
+
+        sql = f"\"INSERT INTO adlist (address, comment) VALUES('{domain}','{comment}');\""
+
+        results = ssh_command(f"sudo /usr/bin/sqlite3 /etc/pihole/gravity.db {sql}")
 
         for result in results:
             if len(result["stderr"]) > 0:
@@ -68,10 +81,32 @@ class Gravity(Resource):
         return Response(response="Success", status=200)
 
     def delete(self):
-        pass
+        parser = reqparse.RequestParser()
+
+        parser.add_argument("domain", required=True)
+
+        args = parser.parse_args()
+
+        domain = args['domain']
+
+        sql = f"\"DELETE FROM adlist WHERE address = '{domain}';\""
+
+        results = ssh_command(f"sudo /usr/bin/sqlite3 /etc/pihole/gravity.db {sql}")
+
+        for result in results:
+            if len(result["stderr"]) > 0:
+                print(result["stderr"])
+                return Response(response=result["stderr"], status=500)
+        return Response(response="Success", status=200)
 
     def patch(self):
-        pass
+        results = ssh_command("pihole -g")
+
+        for result in results:
+            if len(result["stderr"]) > 0:
+                print(result["stderr"])
+                return Response(response=result["stderr"], status=500)
+        return Response(response="Success", status=200)
 
     def get(self):
         results = ssh_command('/usr/bin/sqlite3 /etc/pihole/gravity.db "SELECT id, address, comment FROM adlist;"')
