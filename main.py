@@ -43,9 +43,9 @@ def ssh_command(command):
             stderr = ""
 
             for line in o.readlines():
-                stdout += line #+ "\n"
+                stdout += line  # + "\n"
             for line in e.readlines():
-                stderr += line #+ "\n"
+                stderr += line  # + "\n"
 
             data.append({"host": hostname, "stdout": stdout, "stderr": stderr})
 
@@ -65,12 +65,14 @@ class Gravity(Resource):
 
         args = parser.parse_args()
 
-        domain = args['domain']
-        comment = args['comment']
+        domain = args["domain"]
+        comment = args["comment"]
         if not comment:
             comment = "Added via API"
 
-        sql = f"\"INSERT INTO adlist (address, comment) VALUES('{domain}','{comment}');\""
+        sql = (
+            f"\"INSERT INTO adlist (address, comment) VALUES('{domain}','{comment}');\""
+        )
 
         results = ssh_command(f"sudo /usr/bin/sqlite3 /etc/pihole/gravity.db {sql}")
 
@@ -87,7 +89,7 @@ class Gravity(Resource):
 
         args = parser.parse_args()
 
-        domain = args['domain']
+        domain = args["domain"]
 
         sql = f"\"DELETE FROM adlist WHERE address = '{domain}';\""
 
@@ -109,26 +111,34 @@ class Gravity(Resource):
         return Response(response="Success", status=200)
 
     def get(self):
-        results = ssh_command('/usr/bin/sqlite3 /etc/pihole/gravity.db "SELECT id, address, comment FROM adlist;"')
+        results = ssh_command(
+            '/usr/bin/sqlite3 /etc/pihole/gravity.db "SELECT id, address, comment FROM adlist;"'
+        )
 
         for result in results:
-            if len(result['stderr']) > 0:
-                print(result['stderr'])
-                return Response(response=result['stderr'], status=500)
-        
+            if len(result["stderr"]) > 0:
+                print(result["stderr"])
+                return Response(response=result["stderr"], status=500)
+
         data = {}
 
         for result in results:
             host_result = []
-            for entry in result['stdout'].split('\n'):
+            for entry in result["stdout"].split("\n"):
                 columns = entry.split("|")
                 if len(columns) == 3:
-                    host_result.append({'id':columns[ADLIST_ID], 'comment':columns[ADLIST_COMMENT], 'address':columns[ADLIST_ADDRESS]})
-            data[result['host']] = host_result
+                    host_result.append(
+                        {
+                            "id": columns[ADLIST_ID],
+                            "comment": columns[ADLIST_COMMENT],
+                            "address": columns[ADLIST_ADDRESS],
+                        }
+                    )
+            data[result["host"]] = host_result
 
         response = json.dumps(data)
 
-        return Response(response=response,mimetype='application/json',status=200)
+        return Response(response=response, mimetype="application/json", status=200)
 
 
 class Status(Resource):
@@ -334,6 +344,40 @@ class Whitelist(Resource):
 
         return Response(response=response, status=200)
 
+    def post(self):
+        parser = reqparse.RequestParser()
+
+        parser.add_argument("domain", required=True)
+
+        args = parser.parse_args()
+
+        domain = args["domain"]
+
+        results = ssh_command(f"pihole -w {domain}")
+        for result in results:
+            if len(result["stderr"]) > 0:
+                print(result["stderr"])
+                return Response(response=result["stderr"], status=500)
+
+        return Response(response="Success", status=200)
+
+    def delete(self):
+        parser = reqparse.RequestParser()
+
+        parser.add_argument("domain", required=True)
+
+        args = parser.parse_args()
+
+        domain = args["domain"]
+
+        results = ssh_command(f"pihole -w -d {domain}")
+        for result in results:
+            if len(result["stderr"]) > 0:
+                print(result["stderr"])
+                return Response(response=result["stderr"], status=500)
+
+        return Response(response="Success", status=200)
+
 
 class Blacklist(Resource):
     def get(self):
@@ -359,6 +403,40 @@ class Blacklist(Resource):
         response = json.dumps(lists)
 
         return Response(response=response, status=200)
+
+    def post(self):
+        parser = reqparse.RequestParser()
+
+        parser.add_argument("domain", required=True)
+
+        args = parser.parse_args()
+
+        domain = args["domain"]
+
+        results = ssh_command(f"pihole -b {domain}")
+        for result in results:
+            if len(result["stderr"]) > 0:
+                print(result["stderr"])
+                return Response(response=result["stderr"], status=500)
+
+        return Response(response="Success", status=200)
+
+    def delete(self):
+        parser = reqparse.RequestParser()
+
+        parser.add_argument("domain", required=True)
+
+        args = parser.parse_args()
+
+        domain = args["domain"]
+
+        results = ssh_command(f"pihole -b -d {domain}")
+        for result in results:
+            if len(result["stderr"]) > 0:
+                print(result["stderr"])
+                return Response(response=result["stderr"], status=500)
+
+        return Response(response="Success", status=200)
 
 
 api.add_resource(Gravity, "/gravity")
