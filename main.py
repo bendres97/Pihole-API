@@ -17,7 +17,7 @@ with open(HOSTS_FILE) as hosts:
 
 SSH_CLIENT = paramiko.SSHClient()
 SSH_CLIENT.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-SSH_KEY = paramiko.RSAKey.from_private_key_file("/root/.ssh/id_rsa")
+SSH_KEY = paramiko.RSAKey.from_private_key_file("/app/id_rsa")
 
 ADLIST_ID = 0
 ADLIST_ADDRESS = 1

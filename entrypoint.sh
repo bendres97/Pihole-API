@@ -5,7 +5,7 @@ HOSTS="/app/hosts.conf"
 if test -f $HOSTS; then
     python3 main.py
 else
-    ssh-keygen -f /root/.ssh/id_rsa -P ''
+    ssh-keygen -f /app/id_rsa -P ''
 
     add=true
 
@@ -13,7 +13,7 @@ else
         read -p 'Hostname: ' hostname
         read -p 'Username: ' username
 
-        ssh-copy-id "$username@$hostname"
+        ssh-copy-id -i /app/id_rsa "$username@$hostname"
 
         echo "$username@$hostname" >>hosts.conf
 
