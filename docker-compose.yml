@@ -5,6 +5,11 @@ services:
   pihole-api:
     image: bryanendres/pihole-api
     ports:
-      - 5000:5000
+      - $HOST_PORT:$CONTAINER_PORT
+    environment:
+      - CONTAINER_PORT=$CONTAINER_PORT
+      - HOST_IP=$HOST_IP
     restart: unless-stopped
     container_name: pihole-api
+    volumes:
+      - $DATA_DIR:/app

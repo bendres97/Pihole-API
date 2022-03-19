@@ -3,6 +3,7 @@ from flask_restful import Resource, Api, reqparse
 import paramiko
 import json
 import re
+import os
 
 LIST_REGEX = r"\d: (.+) \((.*), last modified (.*)\)$"
 
@@ -25,6 +26,10 @@ ADLIST_COMMENT = 2
 
 app = Flask(__name__)
 api = Api(app)
+
+# Instantiate from Environment
+HOST_IP = os.getenv("HOST_IP", default="0.0.0.0")
+CONTAINER_PORT = os.getenv("CONTAINER_PORT", default=5000)
 
 
 def ssh_command(command):
@@ -448,4 +453,4 @@ api.add_resource(Blacklist, "/blacklist")
 
 if __name__ == "__main__":
     ssh_command(f"sudo touch {CUSTOM_DOMAIN_FILE}")
-    app.run(host="0.0.0.0")
+    app.run(host=HOST_IP, port=CONTAINER_PORT)
