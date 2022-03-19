@@ -9,7 +9,7 @@ LIST_REGEX = r"\d: (.+) \((.*), last modified (.*)\)$"
 
 CUSTOM_DOMAIN_FILE = "/etc/dnsmasq.d/05-pihole-custom-cname.conf"
 
-HOSTS_FILE = "/app/hosts.conf"
+HOSTS_FILE = "/data/hosts.conf"
 HOSTS = []
 with open(HOSTS_FILE) as hosts:
     for host in hosts.readlines():
@@ -18,7 +18,7 @@ with open(HOSTS_FILE) as hosts:
 
 SSH_CLIENT = paramiko.SSHClient()
 SSH_CLIENT.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-SSH_KEY = paramiko.RSAKey.from_private_key_file("/app/id_rsa")
+SSH_KEY = paramiko.RSAKey.from_private_key_file("/data/id_rsa")
 
 ADLIST_ID = 0
 ADLIST_ADDRESS = 1

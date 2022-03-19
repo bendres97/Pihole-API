@@ -5,11 +5,13 @@ RUN apt update && apt install ssh-tools -y
 RUN pip install --upgrade pip
 
 RUN mkdir /app
+RUN mkdir /data
+
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
 WORKDIR /app
-ADD . /app/
+ADD main.py /app/
 
 EXPOSE 5000
-CMD [ "/bin/bash", "entrypoint.sh"]
+CMD [ "python3", "main.py"]

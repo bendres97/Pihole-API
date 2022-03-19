@@ -12,4 +12,4 @@ services:
     restart: unless-stopped
     container_name: pihole-api
     volumes:
-      - $DATA_DIR:/app
+      - $DATA_DIR:/data
