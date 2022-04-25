@@ -15,4 +15,6 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag my-image-name:latest
+      run: docker build . --file Dockerfile --tag bryanendres/pihole-api:latest
+    - name: Push image to repo
+      run: docker push bryanendres/pihole-api:latest
