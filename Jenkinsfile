@@ -6,7 +6,7 @@ pipeline
         registry_cred = "Dockerhub"
         docker_versioned = ''
         docker_latest = ''
-        versioned_image = registry + ":0.$BUILD_NUMBER"
+        versioned_image = "$registry:0.$BUILD_NUMBER"
     }
     
     agent any
