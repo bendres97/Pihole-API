@@ -35,7 +35,7 @@ pipeline
         {
             steps
             {
-                sh 'curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b . v0.27.10'
+                sh 'curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b . v0.27.1'
                 sh './trivy image --ignore-unfixed --exit-code 1 --severity CRITICAL $docker_versioned'
             }
         }
