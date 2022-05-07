@@ -5,6 +5,8 @@ pipeline
         registry = "bryanendres/pihole-api"
         registry_cred = "Dockerhub"
         docker_versioned = ''
+        docker_latest = ''
+        versioned_image = registry + ":0.$BUILD_NUMBER"
     }
     
     agent any
@@ -24,8 +26,8 @@ pipeline
             {
                 script
                 {
-                    docker_versioned = docker.build registry + ":0.$BUILD_NUMBER"
-                    docker_latest = docker.build registry + "latest"
+                    docker_versioned = docker.build versioned_image
+                    docker_latest = docker.build registry + ":latest"
                 }
             }
         }
@@ -41,6 +43,13 @@ pipeline
                         docker_latest.push()
                     }
                 }
+            }
+        }
+        stage('Clean up build images') 
+        {
+            steps
+            {
+                sh "docker rmi $versioned_image"
             }
         }
     }
