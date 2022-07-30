@@ -9,6 +9,10 @@ services:
     environment:
       - CONTAINER_PORT=$CONTAINER_PORT
       - HOST_IP=$HOST_IP
+      - OTEL_TRACES_EXPORTER=$OTEL_TRACES_EXPORTER
+      - OTEL_EXPORTER_OTLP_ENDPOINT="http://envoy.envoy:4317"
+      - OTEL_RESOURCE_ATTRIBUTES=$OTEL_RESOURCE_ATTRIBUTES
+      - OTEL_METRICS_EXPORTER=$OTEL_METRICS_EXPORTER
     restart: unless-stopped
     container_name: pihole-api
     volumes:
