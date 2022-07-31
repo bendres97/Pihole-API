@@ -22,4 +22,3 @@ ADD main.py /app/
 
 EXPOSE 5000
 CMD [ "/home/runner/.local/bin/opentelemetry-instrument", "python", "main.py"]
-USER root
