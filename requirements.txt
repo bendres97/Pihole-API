@@ -4,14 +4,3 @@ paramiko
 opentelemetry-distro
 protobuf==3.20.1
 opentelemetry-exporter-otlp
-opentelemetry-instrumentation-aws-lambda==0.32b0
-opentelemetry-instrumentation-dbapi==0.32b0
-opentelemetry-instrumentation-logging==0.32b0
-opentelemetry-instrumentation-sqlite3==0.32b0
-opentelemetry-instrumentation-urllib==0.32b0
-opentelemetry-instrumentation-wsgi==0.32b0
-opentelemetry-instrumentation-flask==0.32b0
-opentelemetry-instrumentation-grpc==0.32b0
-opentelemetry-instrumentation-jinja2==0.32b0
-opentelemetry-instrumentation-requests==0.32b0
-opentelemetry-instrumentation-urllib3==0.32b0
