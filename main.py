@@ -4,6 +4,7 @@ import paramiko
 import json
 import re
 import os
+import logging
 
 LIST_REGEX = r"\d: (.+) \((.*), last modified (.*)\)$"
 
@@ -41,15 +42,19 @@ def ssh_command(command):
     for host in HOSTS:
         try:
             username, hostname = host.strip().split("@")
+            logging.info(f"Connecting to {username}@{hostname}")
             SSH_CLIENT.connect(username=username, hostname=hostname, pkey=SSH_KEY)
+            logging.info(f"Executing command")
             i, o, e = SSH_CLIENT.exec_command(command)
 
             stdout = ""
             stderr = ""
 
             for line in o.readlines():
+                logging.debug(line)
                 stdout += line  # + "\n"
             for line in e.readlines():
+                logging.error(f"Error in SSH command: {line}")
                 stderr += line  # + "\n"
 
             data.append({"host": hostname, "stdout": stdout, "stderr": stderr})
