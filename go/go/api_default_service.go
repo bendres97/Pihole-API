@@ -33,8 +33,6 @@ func NewDefaultAPIService() DefaultAPIServicer {
 
 // GravityGet -
 func (s *DefaultAPIService) GravityGet(ctx context.Context) (ImplResponse, error) {
-	// TODO - update GravityGet with the required logic for this service method.
-	// Add api_default_service.go to the .openapi-generator-ignore to avoid overwriting this service implementation when updating open api generation.
 
 	cmd := exec.Command("/usr/bin/sqlite3", "/etc/pihole/gravity.db", "SELECT id, address, comment FROM adlist;")
 	output, err := cmd.Output()
@@ -67,8 +65,7 @@ func (s *DefaultAPIService) GravityGet(ctx context.Context) (ImplResponse, error
 		})
 	}
 
-	// TODO: Uncomment the next line to return response Response(200, []GravityObj{}) or use other options such as http.Ok ...
-	return Response(200, gravity), err
+	return Response(200, gravity), nil
 }
 
 // GravityIdDelete -
