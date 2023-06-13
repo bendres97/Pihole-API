@@ -1,0 +1,124 @@
+openapi: "3.0.2"
+info:
+  title: PiHole Management API
+  description: A management webservice to be run locally on a PiHole instance
+  version: "1.0"
+servers:
+  - url: http://pi.hole:8080/
+paths:
+  /gravity:
+    get:
+      description: Returns a list of all gravity sources
+      responses:
+        "200":
+          description: List of configured Gravity sources
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GravityObj"
+    post:
+      description: Adds a new gravity source
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GravityObj"
+      responses:
+        "200":
+          $ref: "#/components/responses/unchanged"
+        "201":
+          $ref: "#/components/responses/updated"
+        "202":
+          $ref: "#/components/responses/created"
+
+  /gravity/{id}:
+    delete:
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: integer
+            example: 1
+      responses:
+        "200":
+          $ref: "#/components/responses/deleted"
+        "404":
+          $ref: "#/components/responses/four-oh-four"
+    patch:
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GravityObj"
+      responses:
+        "200":
+          $ref: "#/components/responses/unchanged"
+        "404":
+          $ref: "#/components/responses/four-oh-four"
+
+components:
+  responses:
+    created:
+      description: The object was created
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/GravityObj"
+    unchanged:
+      description: Object unchanged
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/GravityObj"
+    updated:
+      description: Object updated
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/GravityObj"
+    deleted:
+      description: The object was deleted
+      content:
+        application/json:
+          schema:
+            type: string
+            example: "Object deleted successfully"
+    four-oh-four:
+      description: Object not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              id:
+                type: integer
+                example: 1
+              status:
+                type: string
+                example: Not found
+
+  schemas:
+    GravityObj:
+      type: object
+      required:
+        - address
+      properties:
+        id:
+          type: integer
+          example: 1
+        address:
+          type: string
+          example: https://pi.hole/adlist.txt
+        comment:
+          type: string
+          example: My adlist for PiHole

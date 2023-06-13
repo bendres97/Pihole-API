@@ -1,0 +1,160 @@
+openapi: 3.0.2
+info:
+  description: A management webservice to be run locally on a PiHole instance
+  title: PiHole Management API
+  version: "1.0"
+servers:
+- url: http://pi.hole:8080/
+paths:
+  /gravity:
+    get:
+      description: Returns a list of all gravity sources
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/GravityObj'
+                type: array
+          description: List of configured Gravity sources
+    post:
+      description: Adds a new gravity source
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GravityObj'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GravityObj'
+          description: Object unchanged
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GravityObj'
+          description: Object updated
+        "202":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GravityObj'
+          description: The object was created
+  /gravity/{id}:
+    delete:
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          example: 1
+          type: integer
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                example: Object deleted successfully
+                type: string
+          description: The object was deleted
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/_gravity__id__delete_404_response'
+          description: Object not found
+    patch:
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          example: 1
+          type: integer
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GravityObj'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GravityObj'
+          description: Object unchanged
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/_gravity__id__delete_404_response'
+          description: Object not found
+components:
+  responses:
+    created:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GravityObj'
+      description: The object was created
+    unchanged:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GravityObj'
+      description: Object unchanged
+    updated:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GravityObj'
+      description: Object updated
+    deleted:
+      content:
+        application/json:
+          schema:
+            example: Object deleted successfully
+            type: string
+      description: The object was deleted
+    four-oh-four:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/_gravity__id__delete_404_response'
+      description: Object not found
+  schemas:
+    GravityObj:
+      example:
+        address: https://pi.hole/adlist.txt
+        comment: My adlist for PiHole
+        id: 1
+      properties:
+        id:
+          example: 1
+          type: integer
+        address:
+          example: https://pi.hole/adlist.txt
+          type: string
+        comment:
+          example: My adlist for PiHole
+          type: string
+      required:
+      - address
+      type: object
+    _gravity__id__delete_404_response:
+      properties:
+        id:
+          example: 1
+          type: integer
+        status:
+          example: Not found
+          type: string
+      type: object
