@@ -6,6 +6,28 @@ info:
 servers:
   - url: http://pi.hole:8080/
 paths:
+  /status:
+    get:
+      description: Status of the PiHole service and webservice
+      responses:
+        "200":
+          description: All systems normal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Status"
+        "201":
+          description: PiHole running but not enabled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Status"
+        "500":
+          description: PiHole service is unhealthy or not running
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Status"
   /gravity:
     get:
       description: Returns a list of all gravity sources
@@ -108,6 +130,38 @@ components:
                 example: Not found
 
   schemas:
+    Status:
+      type: object
+      required:
+        - listening
+        - ipv4
+        - ipv6
+        - blocking
+      properties:
+        listening:
+          type: boolean
+          example: true
+        ipv4:
+          $ref: "#/components/schemas/UdpTcp"
+        ipv6:
+          $ref: "#/components/schemas/UdpTcp"
+
+        blocking:
+          type: boolean
+          example: true
+    UdpTcp:
+      type: object
+      required:
+        - udp
+        - tcp
+      properties:
+        udp:
+          type: boolean
+          example: true
+        tcp:
+          type: boolean
+          example: true
+
     GravityObj:
       type: object
       required:

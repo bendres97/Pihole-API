@@ -31,6 +31,47 @@ func NewDefaultAPIService() DefaultAPIServicer {
 	return &DefaultAPIService{}
 }
 
+// StatusGet -
+func (s *DefaultAPIService) StatusGet(ctx context.Context) (ImplResponse, error) {
+
+	cmd := exec.Command("/usr/local/bin/pihole", "status")
+	output, err := cmd.Output()
+	if err != nil {
+		var errb bytes.Buffer
+		cmd.Stderr = &errb
+		log.Print(cmd.Args)
+		log.Print(string(output))
+		log.Print(errb.String())
+		return Response(500, err.Error()), err
+	}
+
+	result := strings.TrimSpace(string(output))
+
+	status := Status{
+		Listening: strings.Contains(result, "[✓] FTL is listening on port 53"),
+		Blocking:  strings.Contains(result, "[✓] Pi-hole blocking is enabled"),
+		Ipv4: UdpTcp{
+			Tcp: strings.Contains(result, "[✓] TCP (IPv4)"),
+			Udp: strings.Contains(result, "[✓] UDP (IPv4)"),
+		},
+
+		Ipv6: UdpTcp{
+			Tcp: strings.Contains(result, "[✓] TCP (IPv6)"),
+			Udp: strings.Contains(result, "[✓] UDP (IPv6)"),
+		},
+	}
+
+	if status.Listening {
+		if status.Blocking {
+			return Response(200, status), nil
+		} else {
+			return Response(201, status), nil
+		}
+	} else {
+		return Response(500, status), nil
+	}
+}
+
 // GravityGet -
 func (s *DefaultAPIService) GravityGet(ctx context.Context) (ImplResponse, error) {
 

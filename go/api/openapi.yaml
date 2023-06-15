@@ -6,6 +6,28 @@ info:
 servers:
 - url: http://pi.hole:8080/
 paths:
+  /status:
+    get:
+      description: Status of the PiHole service and webservice
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+          description: All systems normal
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+          description: PiHole running but not enabled
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+          description: PiHole service is unhealthy or not running
   /gravity:
     get:
       description: Returns a list of all gravity sources
@@ -131,6 +153,48 @@ components:
             $ref: '#/components/schemas/_gravity__id__delete_404_response'
       description: Object not found
   schemas:
+    Status:
+      example:
+        listening: true
+        ipv4:
+          udp: true
+          tcp: true
+        ipv6:
+          udp: true
+          tcp: true
+        blocking: true
+      properties:
+        listening:
+          example: true
+          type: boolean
+        ipv4:
+          $ref: '#/components/schemas/UdpTcp'
+        ipv6:
+          $ref: '#/components/schemas/UdpTcp'
+        blocking:
+          example: true
+          type: boolean
+      required:
+      - blocking
+      - ipv4
+      - ipv6
+      - listening
+      type: object
+    UdpTcp:
+      example:
+        udp: true
+        tcp: true
+      properties:
+        udp:
+          example: true
+          type: boolean
+        tcp:
+          example: true
+          type: boolean
+      required:
+      - tcp
+      - udp
+      type: object
     GravityObj:
       example:
         address: https://pi.hole/adlist.txt
