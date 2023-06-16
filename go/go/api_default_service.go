@@ -13,6 +13,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os/exec"
@@ -114,13 +115,18 @@ func (s *DefaultAPIService) GravityIdDelete(ctx context.Context, id int32) (Impl
 	// TODO - update GravityIdDelete with the required logic for this service method.
 	// Add api_default_service.go to the .openapi-generator-ignore to avoid overwriting this service implementation when updating open api generation.
 
-	// TODO: Uncomment the next line to return response Response(200, string{}) or use other options such as http.Ok ...
-	// return Response(200, string{}), nil
+	cmd := exec.Command("/usr/bin/sqlite3", "/etc/pihole/gravity.db", fmt.Sprintf("DELETE FROM adlist WHERE id = %v", id))
+	output, err := cmd.Output()
+	if err != nil {
+		var errb bytes.Buffer
+		cmd.Stderr = &errb
+		log.Print(cmd.Args)
+		log.Print(string(output))
+		log.Print(errb.String())
+		return Response(500, err.Error()), err
+	}
 
-	// TODO: Uncomment the next line to return response Response(404, GravityIdDelete404Response{}) or use other options such as http.Ok ...
-	// return Response(404, GravityIdDelete404Response{}), nil
-
-	return Response(http.StatusNotImplemented, nil), errors.New("GravityIdDelete method not implemented")
+	return Response(200, "Domain deleted"), nil
 }
 
 // GravityIdPatch -
