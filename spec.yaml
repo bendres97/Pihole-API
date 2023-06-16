@@ -67,8 +67,6 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/deleted"
-        "404":
-          $ref: "#/components/responses/four-oh-four"
     patch:
       parameters:
         - name: id
