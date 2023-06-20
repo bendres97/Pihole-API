@@ -28,6 +28,37 @@ paths:
               schema:
                 $ref: '#/components/schemas/Status'
           description: PiHole service is unhealthy or not running
+  /status/{action}:
+    post:
+      parameters:
+      - explode: false
+        in: path
+        name: action
+        required: true
+        schema:
+          example: restart
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+          description: All systems normal
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+          description: PiHole running but not enabled
+        "400":
+          content:
+            text/text:
+              schema:
+                example: Invalid request
+                type: string
+          description: Illegal Request
   /gravity:
     get:
       description: Returns a list of all gravity sources

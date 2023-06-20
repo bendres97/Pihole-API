@@ -28,6 +28,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Status"
+  /status/{action}:
+    post:
+      parameters:
+        - name: action
+          in: path
+          required: true
+          schema:
+            type: string
+            example: restart
+      responses:
+        "200":
+          description: All systems normal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Status"
+        "201":
+          description: PiHole running but not enabled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Status"
+        "400":
+          description: Illegal Request
+          content:
+            text/text:
+              schema:
+                type: string
+                example: "Invalid request"
   /gravity:
     get:
       description: Returns a list of all gravity sources
@@ -70,7 +99,6 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/deleted"
-
 components:
   responses:
     unchanged:

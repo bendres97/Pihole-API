@@ -35,6 +35,34 @@ func NewDefaultAPIService() DefaultAPIServicer {
 	return &DefaultAPIService{}
 }
 
+// StatusActionPost
+func (s *DefaultAPIService) StatusActionPost(ctx context.Context, action string) (ImplResponse, error) {
+	action = strings.ToLower(action)
+	var command string
+	switch action {
+	case "restart":
+		command = "restartdns"
+	case "enable":
+		command = "enable"
+	case "disable":
+		command = "disable"
+	default:
+		return Response(400, "Valid options are `restartdns`, `enable`, and `disable`"), errors.New("Invalid Request")
+	}
+	cmd := exec.Command(PIHOLE_EXECUTABLE, command)
+	output, err := cmd.Output()
+	if err != nil {
+		var errb bytes.Buffer
+		cmd.Stderr = &errb
+		log.Print(cmd.Args)
+		log.Print(string(output))
+		log.Print(errb.String())
+		return Response(500, err.Error()), err
+	}
+
+	return Response(200, string(output)), nil
+}
+
 // StatusGet -
 func (s *DefaultAPIService) StatusGet(ctx context.Context) (ImplResponse, error) {
 

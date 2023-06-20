@@ -70,6 +70,11 @@ func (c *DefaultAPIController) Routes() Routes {
 			"/gravity",
 			c.GravityPost,
 		},
+		"StatusActionPost": Route{
+			strings.ToUpper("Post"),
+			"/status/{action}",
+			c.StatusActionPost,
+		},
 		"StatusGet": Route{
 			strings.ToUpper("Get"),
 			"/status",
@@ -141,6 +146,20 @@ func (c *DefaultAPIController) GravityPost(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	result, err := c.service.GravityPost(r.Context(), gravityObjParam)
+	// If an error occurred, encode the error with the status code
+	if err != nil {
+		c.errorHandler(w, r, err, &result)
+		return
+	}
+	// If no error, encode the body and the result code
+	EncodeJSONResponse(result.Body, &result.Code, w)
+}
+
+// StatusActionPost - 
+func (c *DefaultAPIController) StatusActionPost(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	actionParam := params["action"]
+	result, err := c.service.StatusActionPost(r.Context(), actionParam)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		c.errorHandler(w, r, err, &result)
