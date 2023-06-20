@@ -119,8 +119,67 @@ paths:
                 example: Object deleted successfully
                 type: string
           description: The object was deleted
+  /records:
+    delete:
+      description: Remove a custom record
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteRecord'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                example: Object deleted successfully
+                type: string
+          description: The object was deleted
+    get:
+      description: Returns a list of custom DNS records
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Record'
+                type: array
+          description: List of DNS records
+    post:
+      description: Add a custom DNS record
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Record'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Record'
+                type: array
+          description: List of DNS records
+        "201":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Record'
+                type: array
+          description: List of DNS records
 components:
   responses:
+    records:
+      content:
+        application/json:
+          schema:
+            items:
+              $ref: '#/components/schemas/Record'
+            type: array
+      description: List of DNS records
     unchanged:
       content:
         application/json:
@@ -141,6 +200,46 @@ components:
             type: string
       description: The object was deleted
   schemas:
+    DeleteRecord:
+      example:
+        domain: endres.io
+        type: CNAME
+      properties:
+        type:
+          description: CNAME or A
+          example: CNAME
+          type: string
+        domain:
+          description: The domain to resolve
+          example: endres.io
+          type: string
+      required:
+      - domain
+      - type
+      type: object
+    Record:
+      example:
+        domain: google.com
+        destination: 8.8.8.8
+        type: CNAME
+      properties:
+        type:
+          description: CNAME or A
+          example: CNAME
+          type: string
+        domain:
+          description: The domain to resolve
+          example: google.com
+          type: string
+        destination:
+          description: The destination IP or DNS record
+          example: 8.8.8.8
+          type: string
+      required:
+      - destination
+      - domain
+      - type
+      type: object
     Status:
       example:
         listening: true

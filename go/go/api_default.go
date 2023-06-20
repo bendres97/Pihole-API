@@ -70,6 +70,21 @@ func (c *DefaultAPIController) Routes() Routes {
 			"/gravity",
 			c.GravityPost,
 		},
+		"RecordsDelete": Route{
+			strings.ToUpper("Delete"),
+			"/records",
+			c.RecordsDelete,
+		},
+		"RecordsGet": Route{
+			strings.ToUpper("Get"),
+			"/records",
+			c.RecordsGet,
+		},
+		"RecordsPost": Route{
+			strings.ToUpper("Post"),
+			"/records",
+			c.RecordsPost,
+		},
 		"StatusActionPost": Route{
 			strings.ToUpper("Post"),
 			"/status/{action}",
@@ -146,6 +161,72 @@ func (c *DefaultAPIController) GravityPost(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	result, err := c.service.GravityPost(r.Context(), gravityObjParam)
+	// If an error occurred, encode the error with the status code
+	if err != nil {
+		c.errorHandler(w, r, err, &result)
+		return
+	}
+	// If no error, encode the body and the result code
+	EncodeJSONResponse(result.Body, &result.Code, w)
+}
+
+// RecordsDelete - 
+func (c *DefaultAPIController) RecordsDelete(w http.ResponseWriter, r *http.Request) {
+	deleteRecordParam := DeleteRecord{}
+	d := json.NewDecoder(r.Body)
+	d.DisallowUnknownFields()
+	if err := d.Decode(&deleteRecordParam); err != nil {
+		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
+		return
+	}
+	if err := AssertDeleteRecordRequired(deleteRecordParam); err != nil {
+		c.errorHandler(w, r, err, nil)
+		return
+	}
+	if err := AssertDeleteRecordConstraints(deleteRecordParam); err != nil {
+		c.errorHandler(w, r, err, nil)
+		return
+	}
+	result, err := c.service.RecordsDelete(r.Context(), deleteRecordParam)
+	// If an error occurred, encode the error with the status code
+	if err != nil {
+		c.errorHandler(w, r, err, &result)
+		return
+	}
+	// If no error, encode the body and the result code
+	EncodeJSONResponse(result.Body, &result.Code, w)
+}
+
+// RecordsGet - 
+func (c *DefaultAPIController) RecordsGet(w http.ResponseWriter, r *http.Request) {
+	result, err := c.service.RecordsGet(r.Context())
+	// If an error occurred, encode the error with the status code
+	if err != nil {
+		c.errorHandler(w, r, err, &result)
+		return
+	}
+	// If no error, encode the body and the result code
+	EncodeJSONResponse(result.Body, &result.Code, w)
+}
+
+// RecordsPost - 
+func (c *DefaultAPIController) RecordsPost(w http.ResponseWriter, r *http.Request) {
+	recordParam := Record{}
+	d := json.NewDecoder(r.Body)
+	d.DisallowUnknownFields()
+	if err := d.Decode(&recordParam); err != nil {
+		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
+		return
+	}
+	if err := AssertRecordRequired(recordParam); err != nil {
+		c.errorHandler(w, r, err, nil)
+		return
+	}
+	if err := AssertRecordConstraints(recordParam); err != nil {
+		c.errorHandler(w, r, err, nil)
+		return
+	}
+	result, err := c.service.RecordsPost(r.Context(), recordParam)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		c.errorHandler(w, r, err, &result)

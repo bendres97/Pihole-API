@@ -47,7 +47,7 @@ func (s *DefaultAPIService) StatusActionPost(ctx context.Context, action string)
 	case "disable":
 		command = "disable"
 	default:
-		return Response(400, "Valid options are `restartdns`, `enable`, and `disable`"), errors.New("Invalid Request")
+		return Response(400, "Valid options are `restartdns`, `enable`, and `disable`"), errors.New("invalid request")
 	}
 	cmd := exec.Command(PIHOLE_EXECUTABLE, command)
 	output, err := cmd.Output()
@@ -268,4 +268,19 @@ func (s *DefaultAPIService) GravityPost(ctx context.Context, gravityObj GravityO
 		return Response(200, gravityObj), nil
 	}
 	return Response(500, "Unknown Error"), errors.New("reached end of method unexpectedly")
+}
+
+// RecordsDelete
+func (s *DefaultAPIService) RecordsDelete(ctx context.Context, record DeleteRecord) (ImplResponse, error) {
+	return Response(500, "Not implemented"), errors.New("not implemented")
+}
+
+// RecordsGet
+func (s *DefaultAPIService) RecordsGet(ctx context.Context) (ImplResponse, error) {
+	return Response(500, "Not implemented"), errors.New("not implemented")
+}
+
+// RecordsPost
+func (s *DefaultAPIService) RecordsPost(ctx context.Context, record Record) (ImplResponse, error) {
+	return Response(500, "Not implemented"), errors.New("not implemented")
 }

@@ -99,8 +99,47 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/deleted"
+  /records:
+    get:
+      description: Returns a list of custom DNS records
+      responses:
+        "200":
+          $ref: "#/components/responses/records"
+    post:
+      description: Add a custom DNS record
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Record"
+      responses:
+        "200":
+          description: Unchanged
+          $ref: "#/components/responses/records"
+        "201":
+          description: Record added or updated
+          $ref: "#/components/responses/records"
+    delete:
+      description: Remove a custom record
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeleteRecord"
+      responses:
+        "200":
+          $ref: "#/components/responses/deleted"
+
 components:
   responses:
+    records:
+      description: List of DNS records
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/Record"
     unchanged:
       description: Object unchanged
       content:
@@ -122,6 +161,39 @@ components:
             example: "Object deleted successfully"
 
   schemas:
+    DeleteRecord:
+      type: object
+      required:
+        - type
+        - domain
+      properties:
+        type:
+          type: string
+          example: CNAME
+          description: CNAME or A
+        domain:
+          type: string
+          example: endres.io
+          description: The domain to resolve
+    Record:
+      type: object
+      required:
+        - type
+        - domain
+        - destination
+      properties:
+        type:
+          type: string
+          example: CNAME
+          description: CNAME or A
+        domain:
+          type: string
+          example: google.com
+          description: The domain to resolve
+        destination:
+          type: string
+          example: 8.8.8.8
+          description: The destination IP or DNS record
     Status:
       type: object
       required:

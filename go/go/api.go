@@ -24,6 +24,9 @@ type DefaultAPIRouter interface {
 	GravityIdDelete(http.ResponseWriter, *http.Request)
 	GravityPatch(http.ResponseWriter, *http.Request)
 	GravityPost(http.ResponseWriter, *http.Request)
+	RecordsDelete(http.ResponseWriter, *http.Request)
+	RecordsGet(http.ResponseWriter, *http.Request)
+	RecordsPost(http.ResponseWriter, *http.Request)
 	StatusActionPost(http.ResponseWriter, *http.Request)
 	StatusGet(http.ResponseWriter, *http.Request)
 }
@@ -38,6 +41,9 @@ type DefaultAPIServicer interface {
 	GravityIdDelete(context.Context, int32) (ImplResponse, error)
 	GravityPatch(context.Context) (ImplResponse, error)
 	GravityPost(context.Context, GravityObj) (ImplResponse, error)
+	RecordsDelete(context.Context, DeleteRecord) (ImplResponse, error)
+	RecordsGet(context.Context) (ImplResponse, error)
+	RecordsPost(context.Context, Record) (ImplResponse, error)
 	StatusActionPost(context.Context, string) (ImplResponse, error)
 	StatusGet(context.Context) (ImplResponse, error)
 }
