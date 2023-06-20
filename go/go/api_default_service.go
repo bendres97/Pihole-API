@@ -15,6 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -23,6 +24,8 @@ import (
 var SQLLITE_EXECUTABLE = "/usr/bin/sqlite3"
 var SQLLITE_DATABASE = "/etc/pihole/gravity.db"
 var PIHOLE_EXECUTABLE = "/usr/local/bin/pihole"
+var CNAME_FILE = "/etc/dnsmasq.d/05-pihole-custom-cname.conf"
+var TYPEA_FILE = "/etc/pihole/custom.list"
 
 // DefaultAPIService is a service that implements the logic for the DefaultAPIServicer
 // This service should implement the business logic for every endpoint for the DefaultAPI API.
@@ -277,10 +280,80 @@ func (s *DefaultAPIService) RecordsDelete(ctx context.Context, record DeleteReco
 
 // RecordsGet
 func (s *DefaultAPIService) RecordsGet(ctx context.Context) (ImplResponse, error) {
-	return Response(500, "Not implemented"), errors.New("not implemented")
+	cname, err := getCNAME()
+	if err != nil {
+		return Response(500, err.Error()), err
+	}
+
+	typeA, err := getA()
+	if err != nil {
+		return Response(500, err.Error()), err
+	}
+
+	records := append(cname, typeA...)
+
+	return Response(200, records), nil
 }
 
 // RecordsPost
 func (s *DefaultAPIService) RecordsPost(ctx context.Context, record Record) (ImplResponse, error) {
 	return Response(500, "Not implemented"), errors.New("not implemented")
+}
+
+func getCNAME() (records []Record, err error) {
+	err = touchCNAMEFile()
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := os.ReadFile(CNAME_FILE)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, line := range strings.Split(string(data), "\n") {
+		if len(line) > 0 {
+			split := strings.Split(line, ",")
+			domain := strings.Split(split[0], "=")[1]
+			destination := split[1]
+			records = append(records, Record{
+				Type:        "CNAME",
+				Domain:      domain,
+				Destination: destination,
+			})
+		}
+	}
+	return
+}
+
+func getA() (records []Record, err error) {
+	data, err := os.ReadFile(TYPEA_FILE)
+	if err != nil {
+		return nil, err
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		if len(line) > 0 {
+			split := strings.Split(line, " ")
+			domain := split[1]
+			destination := split[0]
+			records = append(records, Record{
+				Type:        "A",
+				Domain:      domain,
+				Destination: destination,
+			})
+		}
+	}
+	return
+}
+
+func touchCNAMEFile() error {
+	_, err := os.Stat(CNAME_FILE)
+	if os.IsNotExist(err) {
+		file, err := os.Create(CNAME_FILE)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+	}
+	return nil
 }
