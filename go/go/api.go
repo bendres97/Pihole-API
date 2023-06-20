@@ -22,7 +22,7 @@ import (
 type DefaultAPIRouter interface { 
 	GravityGet(http.ResponseWriter, *http.Request)
 	GravityIdDelete(http.ResponseWriter, *http.Request)
-	GravityIdPatch(http.ResponseWriter, *http.Request)
+	GravityPatch(http.ResponseWriter, *http.Request)
 	GravityPost(http.ResponseWriter, *http.Request)
 	StatusGet(http.ResponseWriter, *http.Request)
 }
@@ -35,7 +35,7 @@ type DefaultAPIRouter interface {
 type DefaultAPIServicer interface { 
 	GravityGet(context.Context) (ImplResponse, error)
 	GravityIdDelete(context.Context, int32) (ImplResponse, error)
-	GravityIdPatch(context.Context, int32, GravityObj) (ImplResponse, error)
+	GravityPatch(context.Context) (ImplResponse, error)
 	GravityPost(context.Context, GravityObj) (ImplResponse, error)
 	StatusGet(context.Context) (ImplResponse, error)
 }

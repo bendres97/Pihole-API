@@ -54,6 +54,11 @@ paths:
           $ref: "#/components/responses/updated"
         "202":
           $ref: "#/components/responses/created"
+    patch:
+      description: Update gravity (equivalent to `pihole -g`)
+      responses:
+        "200":
+          $ref: "#/components/responses/unchanged"
 
   /gravity/{id}:
     delete:
@@ -67,24 +72,6 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/deleted"
-    patch:
-      parameters:
-        - name: id
-          required: true
-          in: path
-          schema:
-            type: integer
-            example: 1
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/GravityObj"
-      responses:
-        "200":
-          $ref: "#/components/responses/unchanged"
-        "404":
-          $ref: "#/components/responses/four-oh-four"
 
 components:
   responses:
@@ -113,19 +100,6 @@ components:
           schema:
             type: string
             example: "Object deleted successfully"
-    four-oh-four:
-      description: Object not found
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              id:
-                type: integer
-                example: 1
-              status:
-                type: string
-                example: Not found
 
   schemas:
     Status:

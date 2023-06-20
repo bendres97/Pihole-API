@@ -40,6 +40,15 @@ paths:
                   $ref: '#/components/schemas/GravityObj'
                 type: array
           description: List of configured Gravity sources
+    patch:
+      description: Update gravity (equivalent to `pihole -g`)
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GravityObj'
+          description: Object unchanged
     post:
       description: Adds a new gravity source
       requestBody:
@@ -85,34 +94,6 @@ paths:
                 example: Object deleted successfully
                 type: string
           description: The object was deleted
-    patch:
-      parameters:
-      - explode: false
-        in: path
-        name: id
-        required: true
-        schema:
-          example: 1
-          type: integer
-        style: simple
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/GravityObj'
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GravityObj'
-          description: Object unchanged
-        "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/_gravity__id__patch_404_response'
-          description: Object not found
 components:
   responses:
     created:
@@ -140,12 +121,6 @@ components:
             example: Object deleted successfully
             type: string
       description: The object was deleted
-    four-oh-four:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/_gravity__id__patch_404_response'
-      description: Object not found
   schemas:
     Status:
       example:
@@ -206,13 +181,4 @@ components:
           type: string
       required:
       - address
-      type: object
-    _gravity__id__patch_404_response:
-      properties:
-        id:
-          example: 1
-          type: integer
-        status:
-          example: Not found
-          type: string
       type: object

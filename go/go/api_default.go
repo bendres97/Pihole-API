@@ -60,10 +60,10 @@ func (c *DefaultAPIController) Routes() Routes {
 			"/gravity/{id}",
 			c.GravityIdDelete,
 		},
-		"GravityIdPatch": Route{
+		"GravityPatch": Route{
 			strings.ToUpper("Patch"),
-			"/gravity/{id}",
-			c.GravityIdPatch,
+			"/gravity",
+			c.GravityPatch,
 		},
 		"GravityPost": Route{
 			strings.ToUpper("Post"),
@@ -111,33 +111,9 @@ func (c *DefaultAPIController) GravityIdDelete(w http.ResponseWriter, r *http.Re
 	EncodeJSONResponse(result.Body, &result.Code, w)
 }
 
-// GravityIdPatch - 
-func (c *DefaultAPIController) GravityIdPatch(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	idParam, err := parseNumericParameter[int32](
-		params["id"],
-		WithRequire[int32](parseInt32),
-	)
-	if err != nil {
-		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
-		return
-	}
-	gravityObjParam := GravityObj{}
-	d := json.NewDecoder(r.Body)
-	d.DisallowUnknownFields()
-	if err := d.Decode(&gravityObjParam); err != nil {
-		c.errorHandler(w, r, &ParsingError{Err: err}, nil)
-		return
-	}
-	if err := AssertGravityObjRequired(gravityObjParam); err != nil {
-		c.errorHandler(w, r, err, nil)
-		return
-	}
-	if err := AssertGravityObjConstraints(gravityObjParam); err != nil {
-		c.errorHandler(w, r, err, nil)
-		return
-	}
-	result, err := c.service.GravityIdPatch(r.Context(), idParam, gravityObjParam)
+// GravityPatch - 
+func (c *DefaultAPIController) GravityPatch(w http.ResponseWriter, r *http.Request) {
+	result, err := c.service.GravityPatch(r.Context())
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		c.errorHandler(w, r, err, &result)

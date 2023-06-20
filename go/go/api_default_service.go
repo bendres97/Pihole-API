@@ -129,18 +129,20 @@ func (s *DefaultAPIService) GravityIdDelete(ctx context.Context, id int32) (Impl
 	return Response(200, "Domain deleted"), nil
 }
 
-// GravityIdPatch -
-func (s *DefaultAPIService) GravityIdPatch(ctx context.Context, id int32, gravityObj GravityObj) (ImplResponse, error) {
-	// TODO - update GravityIdPatch with the required logic for this service method.
-	// Add api_default_service.go to the .openapi-generator-ignore to avoid overwriting this service implementation when updating open api generation.
+// GravityPatch -
+func (s *DefaultAPIService) GravityPatch(ctx context.Context) (ImplResponse, error) {
+	cmd := exec.Command("/usr/local/bin/pihole", "-g")
+	output, err := cmd.Output()
+	if err != nil {
+		var errb bytes.Buffer
+		cmd.Stderr = &errb
+		log.Print(cmd.Args)
+		log.Print(string(output))
+		log.Print(errb.String())
+		return Response(500, err.Error()), err
+	}
 
-	// TODO: Uncomment the next line to return response Response(200, GravityObj{}) or use other options such as http.Ok ...
-	// return Response(200, GravityObj{}), nil
-
-	// TODO: Uncomment the next line to return response Response(404, GravityIdDelete404Response{}) or use other options such as http.Ok ...
-	// return Response(404, GravityIdDelete404Response{}), nil
-
-	return Response(http.StatusNotImplemented, nil), errors.New("GravityIdPatch method not implemented")
+	return Response(200, "Gravity Updated"), nil
 }
 
 // GravityPost -
