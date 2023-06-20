@@ -11,13 +11,8 @@ flags:
   - -trimpath
   - -tags=netgo
 
-goos:
-  - windows
-  - linux
-  - darwin
-goarch:
-  - amd64
-  - arm64
+goos: linux
+goarch: amd64
 
 main: ./go/main.go
 
