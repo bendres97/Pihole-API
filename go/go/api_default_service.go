@@ -15,11 +15,14 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net/http"
 	"os/exec"
 	"strconv"
 	"strings"
 )
+
+var SQLLITE_EXECUTABLE = "/usr/bin/sqlite3"
+var SQLLITE_DATABASE = "/etc/pihole/gravity.db"
+var PIHOLE_EXECUTABLE = "/usr/local/bin/pihole"
 
 // DefaultAPIService is a service that implements the logic for the DefaultAPIServicer
 // This service should implement the business logic for every endpoint for the DefaultAPI API.
@@ -35,7 +38,7 @@ func NewDefaultAPIService() DefaultAPIServicer {
 // StatusGet -
 func (s *DefaultAPIService) StatusGet(ctx context.Context) (ImplResponse, error) {
 
-	cmd := exec.Command("/usr/local/bin/pihole", "status")
+	cmd := exec.Command(PIHOLE_EXECUTABLE, "status")
 	output, err := cmd.Output()
 	if err != nil {
 		var errb bytes.Buffer
@@ -76,7 +79,7 @@ func (s *DefaultAPIService) StatusGet(ctx context.Context) (ImplResponse, error)
 // GravityGet -
 func (s *DefaultAPIService) GravityGet(ctx context.Context) (ImplResponse, error) {
 
-	cmd := exec.Command("/usr/bin/sqlite3", "/etc/pihole/gravity.db", "SELECT id, address, comment FROM adlist;")
+	cmd := exec.Command(SQLLITE_EXECUTABLE, SQLLITE_DATABASE, "SELECT id, address, comment FROM adlist;")
 	output, err := cmd.Output()
 	if err != nil {
 		var errb bytes.Buffer
@@ -115,7 +118,7 @@ func (s *DefaultAPIService) GravityIdDelete(ctx context.Context, id int32) (Impl
 	// TODO - update GravityIdDelete with the required logic for this service method.
 	// Add api_default_service.go to the .openapi-generator-ignore to avoid overwriting this service implementation when updating open api generation.
 
-	cmd := exec.Command("/usr/bin/sqlite3", "/etc/pihole/gravity.db", fmt.Sprintf("DELETE FROM adlist WHERE id = %v", id))
+	cmd := exec.Command(SQLLITE_EXECUTABLE, SQLLITE_DATABASE, fmt.Sprintf("DELETE FROM adlist WHERE id = %v", id))
 	output, err := cmd.Output()
 	if err != nil {
 		var errb bytes.Buffer
@@ -147,17 +150,94 @@ func (s *DefaultAPIService) GravityPatch(ctx context.Context) (ImplResponse, err
 
 // GravityPost -
 func (s *DefaultAPIService) GravityPost(ctx context.Context, gravityObj GravityObj) (ImplResponse, error) {
-	// TODO - update GravityPost with the required logic for this service method.
-	// Add api_default_service.go to the .openapi-generator-ignore to avoid overwriting this service implementation when updating open api generation.
 
-	// TODO: Uncomment the next line to return response Response(200, GravityObj{}) or use other options such as http.Ok ...
-	// return Response(200, GravityObj{}), nil
+	cmd := exec.Command(SQLLITE_EXECUTABLE,
+		SQLLITE_DATABASE,
+		fmt.Sprintf("SELECT id, address, comment FROM adlist WHERE address = '%v';", gravityObj.Address),
+	)
+	output, err := cmd.Output()
+	if err != nil {
+		var errb bytes.Buffer
+		cmd.Stderr = &errb
+		log.Print(cmd.Args)
+		log.Print(string(output))
+		log.Print(errb.String())
+		return Response(500, err.Error()), err
+	}
 
-	// TODO: Uncomment the next line to return response Response(201, GravityObj{}) or use other options such as http.Ok ...
-	// return Response(201, GravityObj{}), nil
+	result := strings.TrimSpace(string(output))
+	if len(result) > 0 {
+		lines := strings.Split(result, "\n")
+		for _, line := range lines {
+			split := strings.Split(line, "|")
+			id_val, err := strconv.Atoi(split[0])
+			if err != nil {
+				return Response(500, err.Error()), err
+			}
+			id := int32(id_val)
+			address := split[1]
+			comment := split[2]
+			gravity := GravityObj{
+				Id:      id,
+				Address: address,
+				Comment: comment,
+			}
+			if len(lines) > 1 {
+				return Response(500, nil), fmt.Errorf("more than one result found for '%v'", address)
+			} else if len(lines) == 1 {
+				if address == gravityObj.Address && comment == gravityObj.Comment {
+					return Response(200, gravity), nil
+				} else {
+					updatecmd := exec.Command(SQLLITE_EXECUTABLE,
+						SQLLITE_DATABASE,
+						fmt.Sprintf("UPDATE adlist SET address = '%v', comment = '%v' WHERE id = %v", gravity.Address, gravity.Comment, id),
+					)
+					updateOutput, err := updatecmd.Output()
+					if err != nil {
+						var errb bytes.Buffer
+						updatecmd.Stderr = &errb
+						log.Print(updatecmd.Args)
+						log.Print(string(updateOutput))
+						log.Print(errb.String())
+						return Response(500, err.Error()), err
+					}
+					gravity.Address = gravityObj.Address
+					gravity.Comment = gravityObj.Comment
+					gravity.Id = id
+					return Response(201, gravity), nil
+				}
+			}
+		}
 
-	// TODO: Uncomment the next line to return response Response(202, GravityObj{}) or use other options such as http.Ok ...
-	// return Response(202, GravityObj{}), nil
+	} else {
+		insertcmd := exec.Command(SQLLITE_EXECUTABLE,
+			SQLLITE_DATABASE,
+			fmt.Sprintf("INSERT INTO adlist (address, comment) VALUES ('%v','%v')", gravityObj.Address, gravityObj.Comment),
+		)
+		insertOutput, err := insertcmd.Output()
+		if err != nil {
+			var errb bytes.Buffer
+			insertcmd.Stderr = &errb
+			log.Print(insertcmd.Args)
+			log.Print(string(insertOutput))
+			log.Print(errb.String())
+			return Response(500, err.Error()), err
+		}
 
-	return Response(http.StatusNotImplemented, nil), errors.New("GravityPost method not implemented")
+		checkcmd := exec.Command(SQLLITE_EXECUTABLE,
+			SQLLITE_DATABASE,
+			fmt.Sprintf("SELECT id, address, comment FROM adlist WHERE address = '%v';", gravityObj.Address),
+		)
+		checkOutput, err := checkcmd.Output()
+		if err != nil {
+			var errb bytes.Buffer
+			checkcmd.Stderr = &errb
+			log.Print(checkcmd.Args)
+			log.Print(string(checkOutput))
+			log.Print(errb.String())
+			return Response(500, err.Error()), err
+		}
+		return Response(200, gravityObj), nil
+	}
+	return Response(500, "Unknown Error"), errors.New("reached end of method unexpectedly")
 }

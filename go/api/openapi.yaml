@@ -69,12 +69,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/GravityObj'
           description: Object updated
-        "202":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GravityObj'
-          description: The object was created
   /gravity/{id}:
     delete:
       parameters:
@@ -96,12 +90,6 @@ paths:
           description: The object was deleted
 components:
   responses:
-    created:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/GravityObj'
-      description: The object was created
     unchanged:
       content:
         application/json:

@@ -52,8 +52,6 @@ paths:
           $ref: "#/components/responses/unchanged"
         "201":
           $ref: "#/components/responses/updated"
-        "202":
-          $ref: "#/components/responses/created"
     patch:
       description: Update gravity (equivalent to `pihole -g`)
       responses:
@@ -75,12 +73,6 @@ paths:
 
 components:
   responses:
-    created:
-      description: The object was created
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/GravityObj"
     unchanged:
       description: Object unchanged
       content:
