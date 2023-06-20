@@ -60,7 +60,7 @@ func (s *DefaultAPIService) StatusActionPost(ctx context.Context, action string)
 		return Response(500, err.Error()), err
 	}
 
-	return Response(200, string(output)), nil
+	return s.StatusGet(ctx)
 }
 
 // StatusGet -
