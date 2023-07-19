@@ -135,6 +135,13 @@ paths:
                 example: Object deleted successfully
                 type: string
           description: The object was deleted
+        "418":
+          content:
+            application/json:
+              schema:
+                example: '''TEAPOT'' is not a valid record type'
+                type: string
+          description: Invalid DNS record type specified
     get:
       description: Returns a list of custom DNS records
       responses:
@@ -170,8 +177,22 @@ paths:
                   $ref: '#/components/schemas/Record'
                 type: array
           description: List of DNS records
+        "418":
+          content:
+            application/json:
+              schema:
+                example: '''TEAPOT'' is not a valid record type'
+                type: string
+          description: Invalid DNS record type specified
 components:
   responses:
+    invalidRecordType:
+      content:
+        application/json:
+          schema:
+            example: '''TEAPOT'' is not a valid record type'
+            type: string
+      description: Invalid DNS record type specified
     records:
       content:
         application/json:

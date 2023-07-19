@@ -19,6 +19,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var SQLLITE_EXECUTABLE = "/usr/bin/sqlite3"
@@ -275,7 +276,52 @@ func (s *DefaultAPIService) GravityPost(ctx context.Context, gravityObj GravityO
 
 // RecordsDelete
 func (s *DefaultAPIService) RecordsDelete(ctx context.Context, record DeleteRecord) (ImplResponse, error) {
-	return Response(500, "Not implemented"), errors.New("not implemented")
+
+	// Get existing list based on type of record
+	var existing []Record
+	var err error
+	if record.Type == "A" {
+		existing, err = getA()
+	} else if record.Type == "CNAME" {
+		existing, err = getCNAME()
+	} else {
+		err = fmt.Errorf("'%v' is not a valid record type", record.Type)
+		return Response(418, err.Error()), err
+	}
+	if err != nil {
+		return Response(500, err.Error()), err
+	}
+
+	// Iterate through records and determine if deletion is necessary
+	var writeback []Record
+	var found bool
+	for _, entry := range existing {
+		if entry.Domain == record.Domain {
+			found = true
+		} else {
+			writeback = append(writeback, entry)
+		}
+	}
+
+	// If the domain was found, write back the records with the domain removed
+
+	if found {
+		if record.Type == "A" {
+			err := writeA(writeback)
+			if err != nil {
+				return Response(500, err.Error()), err
+			}
+		} else if record.Type == "CNAME" {
+			err := writeCNAME(writeback)
+			if err != nil {
+				return Response(500, err.Error()), err
+			}
+		}
+		return Response(201, fmt.Sprintf("Domain '%v' was removed", record.Domain)), nil
+
+	} else {
+		return s.RecordsGet(ctx)
+	}
 }
 
 // RecordsGet
@@ -297,7 +343,46 @@ func (s *DefaultAPIService) RecordsGet(ctx context.Context) (ImplResponse, error
 
 // RecordsPost
 func (s *DefaultAPIService) RecordsPost(ctx context.Context, record Record) (ImplResponse, error) {
-	return Response(500, "Not implemented"), errors.New("not implemented")
+	// Get existing list based on type of record
+	var existing []Record
+	var err error
+	if record.Type == "A" {
+		existing, err = getA()
+	} else if record.Type == "CNAME" {
+		existing, err = getCNAME()
+	} else {
+		err = fmt.Errorf("'%v' is not a valid record type", record.Type)
+		return Response(418, err.Error()), err
+	}
+	if err != nil {
+		return Response(500, err.Error()), err
+	}
+
+	for _, entry := range existing {
+		if record.Domain == entry.Domain && record.Destination == entry.Destination {
+			return s.RecordsGet(ctx)
+		}
+	}
+
+	writeback := append(existing, record)
+	if record.Type == "A" {
+		err = writeA(writeback)
+	} else if record.Type == "CNAME" {
+		err = writeCNAME(writeback)
+	} else {
+		err = fmt.Errorf("'%v' is not a valid record type", record.Type)
+		return Response(418, err.Error()), err
+	}
+	if err != nil {
+		return Response(500, err.Error()), err
+	}
+
+	new, err := s.RecordsGet(ctx)
+	if err != nil {
+		return Response(500, err.Error()), err
+	}
+	return Response(201, new.Body), nil
+
 }
 
 func getCNAME() (records []Record, err error) {
@@ -354,6 +439,50 @@ func touchCNAMEFile() error {
 			return err
 		}
 		defer file.Close()
+	}
+	return nil
+}
+
+func writeA(records []Record) error {
+	t := time.Now()
+	tempfile := fmt.Sprintf("/tmp/typea_%v.tmp", t)
+	f, err := os.OpenFile(tempfile, os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	for _, record := range records {
+		_, err := f.WriteString(fmt.Sprintf("%v %v\n", record.Destination, record.Domain))
+		if err != nil {
+			return err
+		}
+	}
+
+	err = os.Rename(tempfile, TYPEA_FILE)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func writeCNAME(records []Record) error {
+	t := time.Now()
+	tempfile := fmt.Sprintf("/tmp/cname_%v.tmp", t)
+	f, err := os.OpenFile(tempfile, os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	for _, record := range records {
+		_, err := f.WriteString(fmt.Sprintf("cname=%v,%v\n", record.Domain, record.Destination))
+		if err != nil {
+			return err
+		}
+	}
+
+	err = os.Rename(tempfile, CNAME_FILE)
+	if err != nil {
+		return err
 	}
 	return nil
 }

@@ -119,6 +119,9 @@ paths:
         "201":
           description: Record added or updated
           $ref: "#/components/responses/records"
+        "418":
+          description: Invalid record type
+          $ref: "#/components/responses/invalidRecordType"
     delete:
       description: Remove a custom record
       requestBody:
@@ -128,10 +131,22 @@ paths:
               $ref: "#/components/schemas/DeleteRecord"
       responses:
         "200":
+          $ref: "#/components/responses/records"
+        "201":
           $ref: "#/components/responses/deleted"
+        "418":
+          description: Invalid record type
+          $ref: "#/components/responses/invalidRecordType"
 
 components:
   responses:
+    invalidRecordType:
+      description: Invalid DNS record type specified
+      content:
+        application/json:
+          schema:
+            type: string
+            example: "'TEAPOT' is not a valid record type"
     records:
       description: List of DNS records
       content:
