@@ -1,24 +1,15 @@
-FROM python:3.9-slim
+FROM golang:1.19 AS build
+WORKDIR /go/src
+COPY go ./go
+COPY main.go .
+COPY go.sum .
+COPY go.mod .
 
-RUN mkdir /app
-RUN mkdir /data
+ENV CGO_ENABLED=0
 
-RUN useradd -m runner
-RUN chown -R runner /app
-RUN chown -R runner /data
+RUN go build -o openapi .
 
-WORKDIR /app
-
-USER runner
-
-RUN pip install --upgrade pip
-
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-
-RUN /home/runner/.local/bin/opentelemetry-bootstrap --action=install
-
-ADD main.py /app/
-
-EXPOSE 5000
-CMD [ "/home/runner/.local/bin/opentelemetry-instrument", "python", "main.py"]
+FROM scratch AS runtime
+COPY --from=build /go/src/openapi ./
+EXPOSE 8080/tcp
+ENTRYPOINT ["./openapi"]
