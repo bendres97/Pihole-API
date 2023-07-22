@@ -21,6 +21,6 @@ jobs:
       uses: svenstaro/upload-release-action@v2
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: pihole-api_linux_*
+        file: release/pihole-api_linux_*
         tag: ${{ github.ref }}
         overwrite: true
