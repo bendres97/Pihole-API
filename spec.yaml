@@ -159,9 +159,7 @@ components:
       content:
         application/json:
           schema:
-            type: array
-            items:
-              $ref: "#/components/schemas/Override"
+            $ref: "#/components/schemas/Overrides"
     invalidRecordType:
       description: Invalid DNS record type specified
       content:
@@ -198,10 +196,12 @@ components:
             example: "Object deleted successfully"
 
   schemas:
-    Override:
-      description: Override entry
-      type: string
-      example: google.com
+    Overrides:
+      description: List of overrides
+      type: array
+      items:
+        type: string
+        example: google.com
     DeleteRecord:
       type: object
       required:

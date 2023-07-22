@@ -209,9 +209,7 @@ paths:
           content:
             application/json:
               schema:
-                items:
-                  $ref: '#/components/schemas/Override'
-                type: array
+                $ref: '#/components/schemas/Overrides'
           description: Allow/Block list
 components:
   responses:
@@ -219,9 +217,7 @@ components:
       content:
         application/json:
           schema:
-            items:
-              $ref: '#/components/schemas/Override'
-            type: array
+            $ref: '#/components/schemas/Overrides'
       description: Allow/Block list
     invalidRecordType:
       content:
@@ -258,10 +254,12 @@ components:
             type: string
       description: The object was deleted
   schemas:
-    Override:
-      description: Override entry
-      example: google.com
-      type: string
+    Overrides:
+      description: List of overrides
+      items:
+        example: google.com
+        type: string
+      type: array
     DeleteRecord:
       example:
         domain: endres.io
