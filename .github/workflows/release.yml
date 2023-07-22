@@ -22,8 +22,8 @@ jobs:
     - name: Test
       run: go test -v go/...
 
-    - name: Tidy
-      run: go mod tidy
+    - name: Get pihole-api
+      run: go get github.com/bendres97/pihole-api
 
     - name: Build amd64
       run: go build -o pihole-api_linux_amd64 -v 
