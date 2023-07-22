@@ -10,23 +10,14 @@
 package openapi
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"log"
-	"os"
-	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
-	"time"
 )
-
-var SQLLITE_EXECUTABLE = "/usr/bin/sqlite3"
-var SQLLITE_DATABASE = "/etc/pihole/gravity.db"
-var PIHOLE_EXECUTABLE = "/usr/local/bin/pihole"
-var CNAME_FILE = "/etc/dnsmasq.d/05-pihole-custom-cname.conf"
-var TYPEA_FILE = "/etc/pihole/custom.list"
 
 // DefaultAPIService is a service that implements the logic for the DefaultAPIServicer
 // This service should implement the business logic for every endpoint for the DefaultAPI API.
@@ -37,6 +28,32 @@ type DefaultAPIService struct {
 // NewDefaultAPIService creates a default api service
 func NewDefaultAPIService() DefaultAPIServicer {
 	return &DefaultAPIService{}
+}
+
+func (s *DefaultAPIService) OverridesListGet(ctx context.Context, list string) (ImplResponse, error) {
+	var result cmdResp
+	switch strings.ToLower(list) {
+	case "allow":
+		result = runCommand(PIHOLE_EXECUTABLE, []string{"-w", "-l"})
+	case "block":
+		result = runCommand(PIHOLE_EXECUTABLE, []string{"-b", "-l"})
+	default:
+		err := fmt.Errorf("'%v' is not a valid argument, options are 'allow' and 'block'", list)
+		return Response(418, err.Error()), err
+	}
+
+	if result.err != nil {
+		return Response(500, result.err.Error()), result.err
+	}
+
+	re := regexp.MustCompile(LIST_REGEX)
+	listData := re.FindAllString(result.stdout, -1)
+	log.Print("List Data: ", listData)
+
+	return Response(500, "Not implemented"), errors.New("not implemented")
+
+	// return Response(200, listData), nil
+
 }
 
 // StatusActionPost
@@ -53,15 +70,10 @@ func (s *DefaultAPIService) StatusActionPost(ctx context.Context, action string)
 	default:
 		return Response(400, "Valid options are `restartdns`, `enable`, and `disable`"), errors.New("invalid request")
 	}
-	cmd := exec.Command(PIHOLE_EXECUTABLE, command)
-	output, err := cmd.Output()
-	if err != nil {
-		var errb bytes.Buffer
-		cmd.Stderr = &errb
-		log.Print(cmd.Args)
-		log.Print(string(output))
-		log.Print(errb.String())
-		return Response(500, err.Error()), err
+
+	result := runCommand(PIHOLE_EXECUTABLE, []string{command})
+	if result.err != nil {
+		return Response(500, result.err.Error()), result.err
 	}
 
 	return s.StatusGet(ctx)
@@ -70,18 +82,12 @@ func (s *DefaultAPIService) StatusActionPost(ctx context.Context, action string)
 // StatusGet -
 func (s *DefaultAPIService) StatusGet(ctx context.Context) (ImplResponse, error) {
 
-	cmd := exec.Command(PIHOLE_EXECUTABLE, "status")
-	output, err := cmd.Output()
-	if err != nil {
-		var errb bytes.Buffer
-		cmd.Stderr = &errb
-		log.Print(cmd.Args)
-		log.Print(string(output))
-		log.Print(errb.String())
-		return Response(500, err.Error()), err
+	cmdResult := runCommand(PIHOLE_EXECUTABLE, []string{"status"})
+	if cmdResult.err != nil {
+		return Response(500, cmdResult.err.Error()), cmdResult.err
 	}
 
-	result := strings.TrimSpace(string(output))
+	result := cmdResult.stdout
 
 	status := Status{
 		Listening: strings.Contains(result, "[✓] FTL is listening on port 53"),
@@ -111,20 +117,14 @@ func (s *DefaultAPIService) StatusGet(ctx context.Context) (ImplResponse, error)
 // GravityGet -
 func (s *DefaultAPIService) GravityGet(ctx context.Context) (ImplResponse, error) {
 
-	cmd := exec.Command(SQLLITE_EXECUTABLE, SQLLITE_DATABASE, "SELECT id, address, comment FROM adlist;")
-	output, err := cmd.Output()
-	if err != nil {
-		var errb bytes.Buffer
-		cmd.Stderr = &errb
-		log.Print(cmd.Args)
-		log.Print(string(output))
-		log.Print(errb.String())
-		return Response(500, err.Error()), err
+	cmdResult := runCommand(SQLLITE_EXECUTABLE, []string{SQLLITE_DATABASE, "SELECT id, address, comment FROM adlist;"})
+	if cmdResult.err != nil {
+		return Response(500, cmdResult.err.Error()), cmdResult.err
 	}
 
 	var gravity []GravityObj
 
-	result := strings.TrimSpace(string(output))
+	result := strings.TrimSpace(cmdResult.stdout)
 	lines := strings.Split(result, "\n")
 	for _, line := range lines {
 		split := strings.Split(line, "|")
@@ -147,18 +147,9 @@ func (s *DefaultAPIService) GravityGet(ctx context.Context) (ImplResponse, error
 
 // GravityIdDelete -
 func (s *DefaultAPIService) GravityIdDelete(ctx context.Context, id int32) (ImplResponse, error) {
-	// TODO - update GravityIdDelete with the required logic for this service method.
-	// Add api_default_service.go to the .openapi-generator-ignore to avoid overwriting this service implementation when updating open api generation.
-
-	cmd := exec.Command(SQLLITE_EXECUTABLE, SQLLITE_DATABASE, fmt.Sprintf("DELETE FROM adlist WHERE id = %v", id))
-	output, err := cmd.Output()
-	if err != nil {
-		var errb bytes.Buffer
-		cmd.Stderr = &errb
-		log.Print(cmd.Args)
-		log.Print(string(output))
-		log.Print(errb.String())
-		return Response(500, err.Error()), err
+	cmdResult := runCommand(SQLLITE_EXECUTABLE, []string{SQLLITE_DATABASE, fmt.Sprintf("DELETE FROM adlist WHERE id = %v", id)})
+	if cmdResult.err != nil {
+		return Response(500, cmdResult.err.Error()), cmdResult.err
 	}
 
 	return Response(200, "Domain deleted"), nil
@@ -166,15 +157,9 @@ func (s *DefaultAPIService) GravityIdDelete(ctx context.Context, id int32) (Impl
 
 // GravityPatch -
 func (s *DefaultAPIService) GravityPatch(ctx context.Context) (ImplResponse, error) {
-	cmd := exec.Command("/usr/local/bin/pihole", "-g")
-	output, err := cmd.Output()
-	if err != nil {
-		var errb bytes.Buffer
-		cmd.Stderr = &errb
-		log.Print(cmd.Args)
-		log.Print(string(output))
-		log.Print(errb.String())
-		return Response(500, err.Error()), err
+	cmdResult := runCommand(PIHOLE_EXECUTABLE, []string{"-g"})
+	if cmdResult.err != nil {
+		return Response(500, cmdResult.err.Error()), cmdResult.err
 	}
 
 	return Response(200, "Gravity Updated"), nil
@@ -182,22 +167,18 @@ func (s *DefaultAPIService) GravityPatch(ctx context.Context) (ImplResponse, err
 
 // GravityPost -
 func (s *DefaultAPIService) GravityPost(ctx context.Context, gravityObj GravityObj) (ImplResponse, error) {
-
-	cmd := exec.Command(SQLLITE_EXECUTABLE,
-		SQLLITE_DATABASE,
-		fmt.Sprintf("SELECT id, address, comment FROM adlist WHERE address = '%v';", gravityObj.Address),
+	cmdResult := runCommand(
+		SQLLITE_EXECUTABLE,
+		[]string{SQLLITE_DATABASE,
+			fmt.Sprintf("SELECT id, address, comment FROM adlist WHERE address = '%v';",
+				gravityObj.Address),
+		},
 	)
-	output, err := cmd.Output()
-	if err != nil {
-		var errb bytes.Buffer
-		cmd.Stderr = &errb
-		log.Print(cmd.Args)
-		log.Print(string(output))
-		log.Print(errb.String())
-		return Response(500, err.Error()), err
+	if cmdResult.err != nil {
+		return Response(500, cmdResult.err.Error()), cmdResult.err
 	}
 
-	result := strings.TrimSpace(string(output))
+	result := strings.TrimSpace(cmdResult.stdout)
 	if len(result) > 0 {
 		lines := strings.Split(result, "\n")
 		for _, line := range lines {
@@ -220,18 +201,21 @@ func (s *DefaultAPIService) GravityPost(ctx context.Context, gravityObj GravityO
 				if address == gravityObj.Address && comment == gravityObj.Comment {
 					return Response(200, gravity), nil
 				} else {
-					updatecmd := exec.Command(SQLLITE_EXECUTABLE,
-						SQLLITE_DATABASE,
-						fmt.Sprintf("UPDATE adlist SET address = '%v', comment = '%v' WHERE id = %v", gravity.Address, gravity.Comment, id),
+					updatecmd := runCommand(
+						SQLLITE_EXECUTABLE,
+						[]string{
+							SQLLITE_DATABASE,
+							fmt.Sprintf(
+								"UPDATE adlist SET address = '%v', comment = '%v' WHERE id = %v",
+								gravity.Address,
+								gravity.Comment,
+								id,
+							),
+						},
 					)
-					updateOutput, err := updatecmd.Output()
-					if err != nil {
-						var errb bytes.Buffer
-						updatecmd.Stderr = &errb
-						log.Print(updatecmd.Args)
-						log.Print(string(updateOutput))
-						log.Print(errb.String())
-						return Response(500, err.Error()), err
+
+					if updatecmd.err != nil {
+						return Response(500, updatecmd.err.Error()), updatecmd.err
 					}
 					gravity.Address = gravityObj.Address
 					gravity.Comment = gravityObj.Comment
@@ -242,32 +226,33 @@ func (s *DefaultAPIService) GravityPost(ctx context.Context, gravityObj GravityO
 		}
 
 	} else {
-		insertcmd := exec.Command(SQLLITE_EXECUTABLE,
-			SQLLITE_DATABASE,
-			fmt.Sprintf("INSERT INTO adlist (address, comment) VALUES ('%v','%v')", gravityObj.Address, gravityObj.Comment),
+		insertcmd := runCommand(
+			SQLLITE_EXECUTABLE,
+			[]string{
+				SQLLITE_DATABASE,
+				fmt.Sprintf(
+					"INSERT INTO adlist (address, comment) VALUES ('%v','%v')",
+					gravityObj.Address,
+					gravityObj.Comment,
+				),
+			},
 		)
-		insertOutput, err := insertcmd.Output()
-		if err != nil {
-			var errb bytes.Buffer
-			insertcmd.Stderr = &errb
-			log.Print(insertcmd.Args)
-			log.Print(string(insertOutput))
-			log.Print(errb.String())
-			return Response(500, err.Error()), err
+		if insertcmd.err != nil {
+			return Response(500, insertcmd.err.Error()), insertcmd.err
 		}
 
-		checkcmd := exec.Command(SQLLITE_EXECUTABLE,
-			SQLLITE_DATABASE,
-			fmt.Sprintf("SELECT id, address, comment FROM adlist WHERE address = '%v';", gravityObj.Address),
+		checkcmd := runCommand(
+			SQLLITE_EXECUTABLE,
+			[]string{
+				SQLLITE_DATABASE,
+				fmt.Sprintf(
+					"SELECT id, address, comment FROM adlist WHERE address = '%v';",
+					gravityObj.Address,
+				),
+			},
 		)
-		checkOutput, err := checkcmd.Output()
-		if err != nil {
-			var errb bytes.Buffer
-			checkcmd.Stderr = &errb
-			log.Print(checkcmd.Args)
-			log.Print(string(checkOutput))
-			log.Print(errb.String())
-			return Response(500, err.Error()), err
+		if checkcmd.err != nil {
+			return Response(500, checkcmd.err.Error()), checkcmd.err
 		}
 		return Response(200, gravityObj), nil
 	}
@@ -383,106 +368,4 @@ func (s *DefaultAPIService) RecordsPost(ctx context.Context, record Record) (Imp
 	}
 	return Response(201, new.Body), nil
 
-}
-
-func getCNAME() (records []Record, err error) {
-	err = touchCNAMEFile()
-	if err != nil {
-		return nil, err
-	}
-
-	data, err := os.ReadFile(CNAME_FILE)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, line := range strings.Split(string(data), "\n") {
-		if len(line) > 0 {
-			split := strings.Split(line, ",")
-			domain := strings.Split(split[0], "=")[1]
-			destination := split[1]
-			records = append(records, Record{
-				Type:        "CNAME",
-				Domain:      domain,
-				Destination: destination,
-			})
-		}
-	}
-	return
-}
-
-func getA() (records []Record, err error) {
-	data, err := os.ReadFile(TYPEA_FILE)
-	if err != nil {
-		return nil, err
-	}
-	for _, line := range strings.Split(string(data), "\n") {
-		if len(line) > 0 {
-			split := strings.Split(line, " ")
-			domain := split[1]
-			destination := split[0]
-			records = append(records, Record{
-				Type:        "A",
-				Domain:      domain,
-				Destination: destination,
-			})
-		}
-	}
-	return
-}
-
-func touchCNAMEFile() error {
-	_, err := os.Stat(CNAME_FILE)
-	if os.IsNotExist(err) {
-		file, err := os.Create(CNAME_FILE)
-		if err != nil {
-			return err
-		}
-		defer file.Close()
-	}
-	return nil
-}
-
-func writeA(records []Record) error {
-	t := time.Now()
-	tempfile := fmt.Sprintf("/tmp/typea_%v.tmp", t)
-	f, err := os.OpenFile(tempfile, os.O_RDWR|os.O_CREATE, 0644)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	for _, record := range records {
-		_, err := f.WriteString(fmt.Sprintf("%v %v\n", record.Destination, record.Domain))
-		if err != nil {
-			return err
-		}
-	}
-
-	err = os.Rename(tempfile, TYPEA_FILE)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func writeCNAME(records []Record) error {
-	t := time.Now()
-	tempfile := fmt.Sprintf("/tmp/cname_%v.tmp", t)
-	f, err := os.OpenFile(tempfile, os.O_RDWR|os.O_CREATE, 0644)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	for _, record := range records {
-		_, err := f.WriteString(fmt.Sprintf("cname=%v,%v\n", record.Domain, record.Destination))
-		if err != nil {
-			return err
-		}
-	}
-
-	err = os.Rename(tempfile, CNAME_FILE)
-	if err != nil {
-		return err
-	}
-	return nil
 }

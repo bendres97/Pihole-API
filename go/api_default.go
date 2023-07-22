@@ -70,6 +70,11 @@ func (c *DefaultAPIController) Routes() Routes {
 			"/gravity",
 			c.GravityPost,
 		},
+		"OverridesListGet": Route{
+			strings.ToUpper("Get"),
+			"/overrides/{list}",
+			c.OverridesListGet,
+		},
 		"RecordsDelete": Route{
 			strings.ToUpper("Delete"),
 			"/records",
@@ -161,6 +166,20 @@ func (c *DefaultAPIController) GravityPost(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	result, err := c.service.GravityPost(r.Context(), gravityObjParam)
+	// If an error occurred, encode the error with the status code
+	if err != nil {
+		c.errorHandler(w, r, err, &result)
+		return
+	}
+	// If no error, encode the body and the result code
+	EncodeJSONResponse(result.Body, &result.Code, w)
+}
+
+// OverridesListGet - 
+func (c *DefaultAPIController) OverridesListGet(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	listParam := params["list"]
+	result, err := c.service.OverridesListGet(r.Context(), listParam)
 	// If an error occurred, encode the error with the status code
 	if err != nil {
 		c.errorHandler(w, r, err, &result)

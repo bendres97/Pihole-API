@@ -1,0 +1,32 @@
+name: OpenAPI Spec Generator
+
+on:
+  push:
+    branches: ["dev"]
+
+jobs:
+  update_code:
+    name: Updates the code if the spec changes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Filter for Changes
+        uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            spec:
+              - 'spec.yaml'
+
+      - name: Run generator
+        run: docker run --rm -v $PWD:/local openapitools/openapi-generator-cli generate -i /local/spec.yaml -g go-server -o /local/
+        if: steps.filter.outputs.spec == 'true'
+
+      - name: Push code
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "i@am.invisible"
+          git commit -am "Generate OpenAPI"
+          git push
+        if: steps.filter.outputs.spec == 'true'

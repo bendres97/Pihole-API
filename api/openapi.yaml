@@ -132,6 +132,14 @@ paths:
           content:
             application/json:
               schema:
+                items:
+                  $ref: '#/components/schemas/Record'
+                type: array
+          description: List of DNS records
+        "201":
+          content:
+            application/json:
+              schema:
                 example: Object deleted successfully
                 type: string
           description: The object was deleted
@@ -184,8 +192,33 @@ paths:
                 example: '''TEAPOT'' is not a valid record type'
                 type: string
           description: Invalid DNS record type specified
+  /overrides/{list}:
+    description: Return the Allow or Deny lists
+    get:
+      parameters:
+      - explode: false
+        in: path
+        name: list
+        required: true
+        schema:
+          example: allow
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Overrides'
+          description: Allow/Block list
 components:
   responses:
+    override:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Overrides'
+      description: Allow/Block list
     invalidRecordType:
       content:
         application/json:
@@ -221,6 +254,12 @@ components:
             type: string
       description: The object was deleted
   schemas:
+    Overrides:
+      description: List of overrides
+      items:
+        example: google.com
+        type: string
+      type: array
     DeleteRecord:
       example:
         domain: endres.io
