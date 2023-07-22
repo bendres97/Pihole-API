@@ -8,5 +8,5 @@ Contributions are always welcome.
 Generate spec from file:
 
 ```bash
-docker run --rm -v $(pwd):/local openapitools/openapi-generator-cli generate -i /local/spec.yaml -g go-server -o /local/go
+docker run --rm -v $(pwd):/local openapitools/openapi-generator-cli generate -i /local/spec.yaml -g go-server -o /local/
 ```
