@@ -137,9 +137,31 @@ paths:
         "418":
           description: Invalid record type
           $ref: "#/components/responses/invalidRecordType"
+  /overrides/{list}:
+    description: Return the Allow or Deny lists
+
+    get:
+      parameters:
+        - name: list
+          required: true
+          in: path
+          schema:
+            type: string
+            example: allow
+      responses:
+        "200":
+          $ref: "#/components/responses/override"
 
 components:
   responses:
+    override:
+      description: Allow/Block list
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/Override"
     invalidRecordType:
       description: Invalid DNS record type specified
       content:
@@ -176,6 +198,10 @@ components:
             example: "Object deleted successfully"
 
   schemas:
+    Override:
+      description: Override entry
+      type: string
+      example: google.com
     DeleteRecord:
       type: object
       required:
