@@ -22,6 +22,9 @@ jobs:
     - name: Test
       run: go test -v go/...
 
+    - name: Tidy
+      run: go mod tidy
+
     - name: Build amd64
       run: go build -o pihole-api_linux_amd64 -v 
 
