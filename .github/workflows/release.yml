@@ -14,26 +14,8 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Install Go
-      run: wget https://go.dev/dl/go1.20.6.linux-amd64.tar.gz && \ 
-        tar -C /usr/local -xzf go1.20.6.linux-amd64.tar.gz && \
-        export PATH=$PATH:/usr/local/go/bin && \
-        go version
-
-    - name: Test
-      run: go test -v go/...
-
-    - name: Get pihole-api
-      run: go get github.com/bendres97/pihole-api
-
-    - name: Build amd64
-      run: go build -o pihole-api_linux_amd64 -v 
-
-    - name: Build arm64
-      run: go build -o pihole-api_linux_arm64 -v 
-
-    - name: Build 386
-      run: go build -o pihole-api_linux_386 -v 
+    - name: Run build
+      run: build/run.sh
 
     - name: Upload binaries to release
       uses: svenstaro/upload-release-action@v2
