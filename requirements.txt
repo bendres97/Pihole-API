@@ -1,6 +1,0 @@
-flask
-flask_restful
-paramiko
-opentelemetry-distro
-protobuf==3.20.2
-opentelemetry-exporter-otlp
