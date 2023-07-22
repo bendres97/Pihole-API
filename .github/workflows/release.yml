@@ -1,32 +1,40 @@
-# .github/workflows/release.yaml
+# This workflow will build a golang project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
+
+name: Release
 
 on:
   release:
     types: [published]
 
-permissions:
-  contents: write
-  packages: write
-
 jobs:
-  releases-matrix:
-    name: Release Go Binary
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        # build and publish in parallel: linux/386, linux/amd64, linux/arm64, windows/386, windows/amd64, darwin/amd64, darwin/arm64
-        goos: [linux]
-        goarch: ["386", amd64, arm64]
 
+  build:
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: wangyoucao577/go-release-action@v1.38
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          goos: ${{ matrix.goos }}
-          goarch: ${{ matrix.goarch }}
-          goversion: "1.19"
-          project_path: "."
-          binary_name: "pihole-api"
-          extra_files: LICENSE README.md
-          pre_command: go get github.com/bendres97/pihole-api/
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.20
+
+    - name: Test
+      run: go test -v go/...
+
+    - name: Build amd64
+      run: go build -v go/... -o pihole-api_linux_amd64
+
+    - name: Build arm64
+      run: go build -v go/... -o pihole-api_linux_arm64
+
+    - name: Build 386
+      run: go build -v go/... -o pihole-api_linux_386
+
+    - name: Upload binaries to release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: pihole-api_linux_*
+        tag: ${{ github.ref }}
+        overwrite: true
