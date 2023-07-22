@@ -25,8 +25,8 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           goos: ${{ matrix.goos }}
           goarch: ${{ matrix.goarch }}
-          goversion: "1.18"
+          goversion: "1.19"
           project_path: "."
           binary_name: "pihole-api"
           extra_files: LICENSE README.md
-          pre_command: go get github.com/bendres97/pihole-api/go
+          pre_command: go get github.com/bendres97/pihole-api/
