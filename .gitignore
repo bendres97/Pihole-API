@@ -1,4 +1,1 @@
-data/
-venv/
-.env
-go/pihole-api
+pihole-api
