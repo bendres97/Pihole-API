@@ -6,7 +6,7 @@ git config --global --add safe.directory /build
 
 echo "Running tests..."
 
-go test go/... -v
+go test go/...
 
 echo "Building amd64..."
 GOARCH=amd64 go build -o release/pihole-api_linux_amd64
