@@ -14,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -81,7 +82,6 @@ func (s *DefaultAPIService) StatusActionPost(ctx context.Context, action string)
 
 // StatusGet -
 func (s *DefaultAPIService) StatusGet(ctx context.Context) (ImplResponse, error) {
-
 	cmdResult := runCommand(PIHOLE_EXECUTABLE, []string{"status"})
 	if cmdResult.err != nil {
 		return Response(500, cmdResult.err.Error()), cmdResult.err
@@ -131,6 +131,10 @@ func (s *DefaultAPIService) GravityGet(ctx context.Context) (ImplResponse, error
 		id_val, err := strconv.Atoi(split[0])
 		if err != nil {
 			return Response(500, err.Error()), err
+		}
+		if id_val >= math.MaxInt32 || id_val <= math.MinInt32 {
+			int32err := fmt.Errorf("'%v' does not fall into the range of %v:%v", id_val, math.MinInt32, math.MaxInt32)
+			return Response(500, int32err.Error()), int32err
 		}
 		id := int32(id_val)
 		address := split[1]
@@ -186,6 +190,10 @@ func (s *DefaultAPIService) GravityPost(ctx context.Context, gravityObj GravityO
 			id_val, err := strconv.Atoi(split[0])
 			if err != nil {
 				return Response(500, err.Error()), err
+			}
+			if id_val >= math.MaxInt32 || id_val <= math.MinInt32 {
+				int32err := fmt.Errorf("'%v' does not fall into the range of %v:%v", id_val, math.MinInt32, math.MaxInt32)
+				return Response(500, int32err.Error()), int32err
 			}
 			id := int32(id_val)
 			address := split[1]
