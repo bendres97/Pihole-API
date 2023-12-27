@@ -14,7 +14,7 @@ docker run --rm -v $PWD:/local openapitools/openapi-generator-cli generate -i /l
 # Actions Statuses
 [![CodeQL](https://github.com/bendres97/Pihole-API/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/bendres97/Pihole-API/actions/workflows/codeql-analysis.yml)
 
-[![Go](https://github.com/bendres97/Pihole-API/actions/workflows/go.yml/badge.svg)](https://github.com/bendres97/Pihole-API/actions/workflows/go.yml)
+[![Tests](https://github.com/bendres97/Pihole-API/actions/workflows/go.yml/badge.svg)](https://github.com/bendres97/Pihole-API/actions/workflows/go.yml)
 
 [![OpenAPI Spec Generator](https://github.com/bendres97/Pihole-API/actions/workflows/spec.yml/badge.svg)](https://github.com/bendres97/Pihole-API/actions/workflows/spec.yml)
 
